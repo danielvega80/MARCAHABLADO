@@ -354,6 +354,23 @@
     opacity:0.85;
   }
 
+  .settings-section-title{
+    font-family:var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--sea-1);
+    font-weight:700;
+  }
+  .settings-divider{
+    height:1px;
+    background:var(--line);
+    margin:4px 0;
+  }
+  .settings-row{
+    display:flex;
+  }
+
   .tournament-note{
     text-align:center;
     font-family:var(--font-mono);
@@ -441,18 +458,32 @@
     <h1>Marcador</h1>
   </div>
   <div class="controls-top">
-    <button class="chip active" id="voiceModeToggle">🔊 Voz: Todo</button>
-    <button class="chip" id="voiceLangToggle">ES España</button>
+    <button class="chip active" id="voiceModeToggle">🔔 Voz: Avisos</button>
     <button class="chip" id="vibrateToggle">📳 Vibración</button>
     <button class="chip" id="wakeToggle">☀️ Pantalla</button>
-    <button class="chip" id="proVoiceToggle">🎙️ Voz Pro</button>
     <button class="chip" id="contrastToggle">🌞 Alto contraste</button>
     <button class="chip" id="fullscreenToggle">⛶ Completa</button>
-    <button class="chip" id="settingsToggle">⚙️</button>
+    <button class="chip" id="settingsToggle">⚙️ Voz y ajustes</button>
   </div>
 </header>
 
 <div class="settings-panel" id="settingsPanel">
+  <div class="settings-section-title">Voz (recomendado — no requiere configurar nada)</div>
+  <label>
+    Voz del dispositivo
+    <select id="deviceVoiceSelect"><option value="">Cargando voces...</option></select>
+  </label>
+  <div class="settings-row">
+    <button class="util" id="testVoiceBtn">▶️ Probar esta voz</button>
+  </div>
+  <div class="settings-note">
+    En iPhone: Ajustes → Accesibilidad → Contenido hablado → Voces → español, y descarga una voz "mejorada" o "premium". Aparecerá aquí sola.
+  </div>
+
+  <div class="settings-divider"></div>
+
+  <div class="settings-section-title">Voz Pro (opcional, avanzado)</div>
+  <button class="chip" id="proVoiceToggle">🎙️ Activar Voz Pro</button>
   <label>
     URL del Worker (Voz Pro)
     <input type="text" id="workerUrlInput" placeholder="https://voz-pro.tuusuario.workers.dev">
@@ -467,7 +498,8 @@
       <option value="es-MX-JorgeNeural">Jorge (MX, masculina)</option>
     </select>
   </label>
-  <div class="settings-note" id="proVoiceStatus">Voz Pro desactivada — usando la voz del navegador.</div>
+  <div class="settings-note" id="proVoiceStatus">Voz Pro desactivada — usando la voz del dispositivo.</div>
+
   <button class="util" id="settingsClose">Cerrar</button>
 </div>
 
@@ -556,7 +588,8 @@
     matchOver: document.getElementById('matchOver'),
     banner: document.getElementById('banner'),
     voiceModeToggle: document.getElementById('voiceModeToggle'),
-    voiceLangToggle: document.getElementById('voiceLangToggle'),
+    deviceVoiceSelect: document.getElementById('deviceVoiceSelect'),
+    testVoiceBtn: document.getElementById('testVoiceBtn'),
     vibrateToggle: document.getElementById('vibrateToggle'),
     wakeToggle: document.getElementById('wakeToggle'),
     shareBtn: document.getElementById('shareBtn'),
@@ -578,9 +611,9 @@
     tournamentNote: document.getElementById('tournamentNote')
   };
 
-  let voiceMode = 'all'; // 'all' | 'announcements' | 'off'
-  let voiceLang = 'es-ES';
-  const langCycle = ['es-ES','es-MX','es-US'];
+  let voiceMode = 'announcements'; // 'all' | 'announcements' | 'off'
+  let voiceLang = 'es-ES'; // idioma de respaldo si no hay voz de dispositivo elegida
+  let selectedVoiceName = ''; // nombre exacto de la voz del dispositivo elegida en ajustes
   let vibrateOn = true;
   let wakeLockActive = false;
   let wakeLockRef = null;
@@ -633,11 +666,19 @@
     if(!('speechSynthesis' in window)) return;
     try{
       const synth = window.speechSynthesis;
+      const chosenVoice = selectedVoiceName
+        ? synth.getVoices().find(v => v.name === selectedVoiceName)
+        : null;
       const speakAll = ()=>{
         messages.forEach(item=>{
           const msg = (typeof item === 'string') ? {text: item} : item;
           const u = new SpeechSynthesisUtterance(msg.text);
-          u.lang = voiceLang;
+          if(chosenVoice){
+            u.voice = chosenVoice;
+            u.lang = chosenVoice.lang;
+          } else {
+            u.lang = voiceLang;
+          }
           u.rate = msg.rate || 1.0;
           u.pitch = msg.pitch || 1.0;
           u.volume = 1.0;
@@ -653,6 +694,29 @@
         speakAll();
       }
     }catch(e){ /* silencioso */ }
+  }
+
+  // Rellena el desplegable con las voces que ya tiene instaladas el propio
+  // dispositivo (sin configurar nada externo). En iOS/Android las voces
+  // "mejoradas"/"neuronales" que se descargan en Ajustes aparecen aquí solas.
+  function populateDeviceVoices(){
+    if(!('speechSynthesis' in window)) return;
+    const voices = window.speechSynthesis.getVoices();
+    if(!voices.length) return; // algunos navegadores las cargan de forma asíncrona
+    const spanish = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith('es'));
+    const list = spanish.length ? spanish : voices;
+    els.deviceVoiceSelect.innerHTML = '';
+    const autoOpt = document.createElement('option');
+    autoOpt.value = '';
+    autoOpt.textContent = 'Automática (la del sistema)';
+    els.deviceVoiceSelect.appendChild(autoOpt);
+    list.forEach(v=>{
+      const opt = document.createElement('option');
+      opt.value = v.name;
+      opt.textContent = v.name + ' (' + v.lang + ')';
+      if(v.name === selectedVoiceName) opt.selected = true;
+      els.deviceVoiceSelect.appendChild(opt);
+    });
   }
 
   // Voz Pro: pide el audio a Azure TTS (vía tu Worker) y lo reproduce.
@@ -719,24 +783,94 @@
   function pointPhrase(scorerTeam, a, b){
     const scorer = teamName(scorerTeam);
     const scoreLine = teamName('A') + ' ' + a + ', ' + teamName('B') + ' ' + b;
+    const isFirstPointOfSet = (a + b) === 1;
 
     if(a === b){
       const tieTemplates = [
         'Empate a ' + a,
         'Igualan a ' + a,
-        'Y se ponen iguales, a ' + a
+        'Y se ponen iguales, a ' + a,
+        'Empatan el partido, ' + a + ' a ' + a,
+        scorer + ' iguala el marcador, ' + a,
+        'Todo igual, ' + a,
+        'Y llegan empatados a ' + a,
+        scorer + ' pone las tablas, ' + a
       ];
       return {text: pick(tieTemplates), pitch: 1.1, rate: 1.0};
     }
 
-    const templates = [
+    // Primer punto del set: nada de "sigue"/"otra vez", aquí no hay nada previo
+    if(isFirstPointOfSet){
+      const openerTemplates = [
+        scorer + ' abre el marcador. ' + scoreLine,
+        'Primer punto para ' + scorer + '. ' + scoreLine,
+        'Empieza marcando ' + scorer + '. ' + scoreLine,
+        scorer + ' inaugura el set. ' + scoreLine,
+        'Arranca el set y anota ' + scorer + '. ' + scoreLine,
+        scoreLine
+      ];
+      return {text: pick(openerTemplates), pitch: 1.0, rate: 1.0};
+    }
+
+    // ¿el que anota venía por detrás antes de este punto? (para frases de remontada)
+    const beforeScorer = scorerTeam === 'A' ? a - 1 : b - 1;
+    const beforeOther = scorerTeam === 'A' ? b : a;
+    const wasTrailing = beforeScorer < beforeOther;
+    const diff = Math.abs(a - b);
+    const leaderIsScorer = (scorerTeam === 'A' && a > b) || (scorerTeam === 'B' && b > a);
+
+    let pool = [
       scorer + ' anota. ' + scoreLine,
       'Punto para ' + scorer + '. ' + scoreLine,
       scorer + ' suma uno más. ' + scoreLine,
       'Y sigue ' + scorer + '. ' + scoreLine,
-      scoreLine
+      scoreLine,
+      'Buen punto de ' + scorer + '. ' + scoreLine,
+      scorer + ' se lleva ese punto. ' + scoreLine,
+      'Ahí está, ' + scorer + '. ' + scoreLine,
+      scorer + ', otra vez. ' + scoreLine,
+      'Lo tiene ' + scorer + '. ' + scoreLine,
+      scorer + ' no falla. ' + scoreLine,
+      'Punto más para ' + scorer + '. ' + scoreLine,
+      scorer + ' sigue sumando. ' + scoreLine,
+      'Y otra vez ' + scorer + '. ' + scoreLine,
+      'Bien resuelto por ' + scorer + '. ' + scoreLine,
+      scorer + ' aprovecha la ocasión. ' + scoreLine,
+      'Se pone en marcha ' + scorer + '. ' + scoreLine,
+      scorer + ' hace el punto. ' + scoreLine
     ];
-    return {text: pick(templates), pitch: 1.0, rate: 1.0};
+
+    if(wasTrailing){
+      pool = pool.concat([
+        scorer + ' recorta distancia. ' + scoreLine,
+        scorer + ' se acerca. ' + scoreLine,
+        'Reacciona ' + scorer + '. ' + scoreLine,
+        scorer + ' aprieta desde atrás. ' + scoreLine,
+        'No se rinde ' + scorer + '. ' + scoreLine
+      ]);
+    }
+
+    if(leaderIsScorer && diff >= 4){
+      pool = pool.concat([
+        scorer + ' se escapa. ' + scoreLine,
+        scorer + ' abre distancia. ' + scoreLine,
+        'Se va arriba ' + scorer + '. ' + scoreLine,
+        scorer + ' aprieta el marcador a su favor. ' + scoreLine,
+        'Cada vez más claro para ' + scorer + '. ' + scoreLine
+      ]);
+    }
+
+    if(diff === 1){
+      pool = pool.concat([
+        'Se mantiene apretado, ' + scoreLine,
+        'Todo muy ajustado. ' + scoreLine,
+        scorer + ' no se despega. ' + scoreLine,
+        'Sigue la igualdad de fuerzas, ' + scoreLine,
+        'Un punto de nada, ' + scoreLine
+      ]);
+    }
+
+    return {text: pick(pool), pitch: 1.0, rate: 1.0};
   }
 
   // Detecta si, tras este punto, alguno de los dos equipos está a un tanto
@@ -1186,13 +1320,18 @@
     if(voiceMode !== 'off') say('Voz: ' + (voiceMode === 'all' ? 'todo' : 'solo avisos'));
   });
 
-  els.voiceLangToggle.addEventListener('click', ()=>{
-    const idx = langCycle.indexOf(voiceLang);
-    voiceLang = langCycle[(idx+1) % langCycle.length];
-    const labels = {'es-ES':'ES España','es-MX':'ES México','es-US':'ES Latino'};
-    els.voiceLangToggle.textContent = labels[voiceLang];
-    say('Voz cambiada');
+  els.deviceVoiceSelect.addEventListener('change', ()=>{
+    selectedVoiceName = els.deviceVoiceSelect.value;
   });
+
+  els.testVoiceBtn.addEventListener('click', ()=>{
+    announceBrowser([{text:'Voz de prueba. Equipo A doce, equipo B ocho.'}]);
+  });
+
+  if('speechSynthesis' in window){
+    populateDeviceVoices();
+    window.speechSynthesis.addEventListener('voiceschanged', populateDeviceVoices);
+  }
 
   els.vibrateToggle.addEventListener('click', ()=>{
     vibrateOn = !vibrateOn;
