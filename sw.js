@@ -1,6 +1,7 @@
-// Service worker mínimo: cachea la app la primera vez para que funcione sin internet
-// (la Voz Pro necesita conexión igualmente; la voz del navegador funciona offline).
-const CACHE_NAME = 'marcador-voley-playa-v1';
+// Service worker: red primero, caché solo de respaldo si no hay conexión.
+// (así siempre ves la versión más reciente en cuanto la subes a GitHub;
+// el modo offline sigue funcionando gracias a la copia en caché).
+const CACHE_NAME = 'marcador-voley-playa-v2';
 const ASSETS = ['./', './index.html', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', (event) => {
@@ -20,9 +21,19 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Nunca cachear las llamadas a Voz Pro (Worker de Azure) — siempre en vivo
   if (event.request.method !== 'GET') return;
+
   event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request))
+    fetch(event.request)
+      .then((networkResponse) => {
+        // guarda siempre la versión más reciente en caché para el modo offline
+        const copy = networkResponse.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+        return networkResponse;
+      })
+      .catch(() =>
+        // sin conexión: usa lo que haya en caché como último recurso
+        caches.match(event.request)
+      )
   );
 });
