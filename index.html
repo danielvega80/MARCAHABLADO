@@ -128,12 +128,16 @@
     background:linear-gradient(160deg, var(--sea-1), var(--sea-2));
     color:var(--sand-1);
     margin-right:4px;
+    order:1;
   }
   .team.b{
     background:linear-gradient(160deg, var(--coral), var(--coral-dark));
     color:#fff6ee;
     margin-left:4px;
+    order:3;
   }
+  #mainBoard.swapped .team.a{ order:3; margin-right:0; margin-left:4px; }
+  #mainBoard.swapped .team.b{ order:1; margin-left:0; margin-right:4px; }
   .team-name{
     background:transparent;
     border:none;
@@ -205,6 +209,7 @@
     width:30px;
     display:flex; align-items:center; justify-content:center;
     color:var(--sea-2);
+    order:2;
   }
   .net .divider{
     font-family:var(--font-display);
@@ -463,6 +468,7 @@
     <button class="chip" id="wakeToggle">☀️ Pantalla</button>
     <button class="chip" id="contrastToggle">🌞 Alto contraste</button>
     <button class="chip" id="fullscreenToggle">⛶ Completa</button>
+    <button class="chip" id="crazyModeToggle">🔥 Modo Locura</button>
     <button class="chip" id="settingsToggle">⚙️ Voz y ajustes</button>
   </div>
 </header>
@@ -506,7 +512,7 @@
 <div class="sets-row" id="setsRow"></div>
 <div class="match-over" id="matchOver"></div>
 
-<main>
+<main id="mainBoard">
   <div class="team a">
     <div class="serve-dot" id="serveA"></div>
     <input class="team-name" id="nameA" value="EQUIPO A" maxlength="16">
@@ -572,10 +578,12 @@
     history: [], // pila para deshacer: {score, serve}
     timeoutGiven: false, // tiempo técnico ya dado en el set actual
     courtSwap: false, // false = A izquierda / B derecha; true = al revés
-    pointsLog: [] // [{team, a, b, set, t}, ...] para estadísticas/ritmo de juego
+    pointsLog: [], // [{team, a, b, set, t}, ...] para estadísticas/ritmo de juego
+    currentStreak: {team: null, count: 0} // puntos seguidos sin que anote el rival
   };
 
   const els = {
+    mainBoard: document.getElementById('mainBoard'),
     scoreA: document.getElementById('scoreA'),
     scoreB: document.getElementById('scoreB'),
     nameA: document.getElementById('nameA'),
@@ -606,6 +614,7 @@
     proVoiceStatus: document.getElementById('proVoiceStatus'),
     contrastToggle: document.getElementById('contrastToggle'),
     fullscreenToggle: document.getElementById('fullscreenToggle'),
+    crazyModeToggle: document.getElementById('crazyModeToggle'),
     saveMatchBtn: document.getElementById('saveMatchBtn'),
     exportTournamentBtn: document.getElementById('exportTournamentBtn'),
     tournamentNote: document.getElementById('tournamentNote')
@@ -621,6 +630,8 @@
   let highContrastOn = false;
   let tournamentMatches = []; // partidos guardados en esta sesión (modo torneo)
   let audioCtx = null; // para el silbato
+  let crazyModeOn = false; // "Modo Locura": cuenta atrás de saque de 8s con silbato
+  let serveCountdownInterval = null;
 
   // ---------- Voz Pro (Azure TTS vía Worker propio) ----------
   let proVoiceOn = false;
@@ -794,7 +805,9 @@
         scorer + ' iguala el marcador, ' + a,
         'Todo igual, ' + a,
         'Y llegan empatados a ' + a,
-        scorer + ' pone las tablas, ' + a
+        scorer + ' pone las tablas, ' + a,
+        'Tablas a ' + a,
+        'Ni para uno ni para otro, ' + a + ' a ' + a
       ];
       return {text: pick(tieTemplates), pitch: 1.1, rate: 1.0};
     }
@@ -807,7 +820,9 @@
         'Empieza marcando ' + scorer + '. ' + scoreLine,
         scorer + ' inaugura el set. ' + scoreLine,
         'Arranca el set y anota ' + scorer + '. ' + scoreLine,
-        scoreLine
+        scoreLine,
+        scorer + ' se adelanta desde el principio. ' + scoreLine,
+        'Comienza bien ' + scorer + '. ' + scoreLine
       ];
       return {text: pick(openerTemplates), pitch: 1.0, rate: 1.0};
     }
@@ -837,7 +852,20 @@
       'Bien resuelto por ' + scorer + '. ' + scoreLine,
       scorer + ' aprovecha la ocasión. ' + scoreLine,
       'Se pone en marcha ' + scorer + '. ' + scoreLine,
-      scorer + ' hace el punto. ' + scoreLine
+      scorer + ' hace el punto. ' + scoreLine,
+      'Bien jugado, ' + scorer + '. ' + scoreLine,
+      scorer + ' resuelve la jugada. ' + scoreLine,
+      'Directo al suelo, punto ' + scorer + '. ' + scoreLine,
+      scorer + ' gana el intercambio. ' + scoreLine,
+      'Efectivo ' + scorer + '. ' + scoreLine,
+      scorer + ' construye el punto. ' + scoreLine,
+      'Se anota ' + scorer + '. ' + scoreLine,
+      scorer + ' capitaliza la jugada. ' + scoreLine,
+      'Van sumando, ' + scoreLine,
+      scorer + ' pone otro más. ' + scoreLine,
+      'Certero ' + scorer + '. ' + scoreLine,
+      scorer + ' encuentra el hueco. ' + scoreLine,
+      'Vuelve a marcar ' + scorer + '. ' + scoreLine
     ];
 
     if(wasTrailing){
@@ -846,7 +874,10 @@
         scorer + ' se acerca. ' + scoreLine,
         'Reacciona ' + scorer + '. ' + scoreLine,
         scorer + ' aprieta desde atrás. ' + scoreLine,
-        'No se rinde ' + scorer + '. ' + scoreLine
+        'No se rinde ' + scorer + '. ' + scoreLine,
+        scorer + ' no baja los brazos. ' + scoreLine,
+        'Vuelve a la pelea ' + scorer + '. ' + scoreLine,
+        scorer + ' descuenta. ' + scoreLine
       ]);
     }
 
@@ -856,7 +887,9 @@
         scorer + ' abre distancia. ' + scoreLine,
         'Se va arriba ' + scorer + '. ' + scoreLine,
         scorer + ' aprieta el marcador a su favor. ' + scoreLine,
-        'Cada vez más claro para ' + scorer + '. ' + scoreLine
+        'Cada vez más claro para ' + scorer + '. ' + scoreLine,
+        scorer + ' toma ventaja clara. ' + scoreLine,
+        'Se distancia ' + scorer + '. ' + scoreLine
       ]);
     }
 
@@ -866,7 +899,9 @@
         'Todo muy ajustado. ' + scoreLine,
         scorer + ' no se despega. ' + scoreLine,
         'Sigue la igualdad de fuerzas, ' + scoreLine,
-        'Un punto de nada, ' + scoreLine
+        'Un punto de nada, ' + scoreLine,
+        'Partido de infarto, ' + scoreLine,
+        'Se lo disputan punto a punto, ' + scoreLine
       ]);
     }
 
@@ -883,10 +918,18 @@
       const nb = t === 'B' ? b + 1 : b;
       if(isSetEndingScore(na, nb)){
         const wouldWinMatch = (state.setsWon[t] + 1) >= SETS_TO_WIN;
-        const label = wouldWinMatch
-          ? 'Punto de partido para ' + teamName(t)
-          : 'Punto de set para ' + teamName(t);
-        stakes.push({text: label, pitch: 0.85, rate: 0.92});
+        const labelPool = wouldWinMatch ? [
+          'Punto de partido para ' + teamName(t),
+          teamName(t) + ' puede cerrar el partido',
+          'Bola de partido para ' + teamName(t),
+          teamName(t) + ' tiene el partido en la mano'
+        ] : [
+          'Punto de set para ' + teamName(t),
+          teamName(t) + ' puede cerrar el set',
+          'Bola de set para ' + teamName(t),
+          teamName(t) + ' tiene el set en la mano'
+        ];
+        stakes.push({text: pick(labelPool), pitch: 0.85, rate: 0.92});
       }
     });
     return stakes;
@@ -920,6 +963,14 @@
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
         osc.start(now);
         osc.stop(now + 0.3);
+      } else if(kind === 'serve'){
+        // toque corto y ascendente, distinto al de cambio de campo, para marcar el saque
+        osc.frequency.setValueAtTime(1400, now);
+        osc.frequency.exponentialRampToValueAtTime(2000, now + 0.1);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+        osc.start(now);
+        osc.stop(now + 0.15);
       } else {
         // toque único, agudo y breve, para cambio de campo
         osc.frequency.setValueAtTime(2400, now);
@@ -945,6 +996,7 @@
   }
 
   function startTimeout(){
+    clearServeCountdown(); // no solapar la cuenta de saque con el tiempo técnico
     let count = 30;
     els.timeoutCount.textContent = count;
     els.timeoutOverlay.classList.add('show');
@@ -967,6 +1019,32 @@
     say('Se reanuda el partido');
   }
 
+  // Modo Locura: 8 segundos de cuenta atrás hablada tras cada punto,
+  // con silbato al llegar a cero (simula el tiempo límite de saque).
+  function clearServeCountdown(){
+    if(serveCountdownInterval){
+      clearInterval(serveCountdownInterval);
+      serveCountdownInterval = null;
+    }
+  }
+
+  function startServeCountdown(){
+    if(!crazyModeOn) return;
+    clearServeCountdown();
+    let secondsLeft = 8;
+    say(String(secondsLeft));
+    serveCountdownInterval = setInterval(()=>{
+      secondsLeft--;
+      if(secondsLeft > 0){
+        say(String(secondsLeft));
+      } else {
+        clearServeCountdown();
+        whistle('serve');
+        buzz([80,40,80]);
+      }
+    }, 1000);
+  }
+
   function flashBanner(text){
     els.banner.textContent = text;
     els.banner.classList.add('show');
@@ -981,6 +1059,7 @@
     els.serveB.classList.toggle('show', state.serve === 'B');
     els.sideA.textContent = state.courtSwap ? 'DERECHA' : 'IZQUIERDA';
     els.sideB.textContent = state.courtSwap ? 'IZQUIERDA' : 'DERECHA';
+    els.mainBoard.classList.toggle('swapped', state.courtSwap);
 
     // sets pills
     els.setsRow.innerHTML = '';
@@ -1017,7 +1096,7 @@
       score: state.score, serve: state.serve, setsWon: state.setsWon,
       setHistory: state.setHistory, matchOver: state.matchOver,
       timeoutGiven: state.timeoutGiven, courtSwap: state.courtSwap,
-      pointsLog: state.pointsLog
+      pointsLog: state.pointsLog, currentStreak: state.currentStreak
     })));
     if(state.history.length > 200) state.history.shift();
   }
@@ -1041,6 +1120,7 @@
       buzz([120,80,120,80,250]);
       state.score = {A:0, B:0};
       state.timeoutGiven = false;
+      state.currentStreak = {team: null, count: 0};
 
       if(state.setsWon[leader] >= SETS_TO_WIN){
         state.matchOver = true;
@@ -1073,10 +1153,27 @@
     // registro del punto para estadísticas (JSON exportado)
     state.pointsLog.push({team, a, b, set: state.setHistory.length + 1, t: Date.now()});
 
+    // racha: puntos seguidos del mismo equipo sin que el rival anote
+    if(state.currentStreak.team === team){
+      state.currentStreak.count++;
+    } else {
+      state.currentStreak = {team, count: 1};
+    }
+
     // anuncio de tanto: solo si el modo de voz es "Todo", con frase variada y entonación
     const messages = [];
     if(voiceMode === 'all'){
       messages.push(pointPhrase(team, a, b));
+    }
+
+    // racha de 3 o más puntos seguidos: aviso táctico, independiente del modo de voz
+    if(!setEnds && state.currentStreak.count >= 3){
+      const streakTemplates = [
+        'Racha de ' + state.currentStreak.count + ' para ' + teamName(team),
+        teamName(team) + ' encadena ' + state.currentStreak.count + ' seguidos',
+        teamName(team) + ' no da opción, ' + state.currentStreak.count + ' seguidos'
+      ];
+      messages.push({text: pick(streakTemplates), pitch: 1.05, rate: 1.0});
     }
 
     // avisos de cambio de campo (solo si este punto no cierra ya el set)
@@ -1084,12 +1181,14 @@
     if(!setEnds && total > 0){
       if(total % interval === 0){
         whistle('change');
-        messages.push({text:'Cambio de campo', pitch:0.95, rate:0.95});
+        const changeTemplates = ['Cambio de campo', 'Se cambia de lado', 'Cambio de lado ya', 'Tocan cambiar de campo'];
+        messages.push({text: pick(changeTemplates), pitch:0.95, rate:0.95});
         flashBanner('🔄 CAMBIO DE CAMPO');
         buzz([100,60,100]);
         sideChanged = true;
       } else if(total % interval === interval - 1){
-        messages.push({text:'Uno para cambio', pitch:0.95, rate:0.95});
+        const warnTemplates = ['Uno para cambio', 'Un punto más y cambio', 'Último antes del cambio de campo'];
+        messages.push({text: pick(warnTemplates), pitch:0.95, rate:0.95});
         flashBanner('Uno para cambio');
       }
     }
@@ -1102,6 +1201,13 @@
 
     const timeoutStarted = maybeStartTechnicalTimeout(a, b, setEnds);
     checkSetEnd();
+
+    if(!timeoutStarted && !state.matchOver){
+      startServeCountdown();
+    } else {
+      clearServeCountdown();
+    }
+
     render();
   }
 
@@ -1109,6 +1215,7 @@
     if(state.score[team] > 0){
       pushHistory();
       state.score[team]--;
+      clearServeCountdown();
       render();
     }
   }
@@ -1116,6 +1223,7 @@
   function setServe(team){
     pushHistory();
     state.serve = team;
+    whistle('serve');
     render();
   }
 
@@ -1135,6 +1243,8 @@
     state.timeoutGiven = prev.timeoutGiven;
     state.courtSwap = prev.courtSwap;
     state.pointsLog = prev.pointsLog;
+    state.currentStreak = prev.currentStreak;
+    clearServeCountdown();
     render();
   }
 
@@ -1148,6 +1258,8 @@
     if(leader) state.setsWon[leader]++;
     state.score = {A:0, B:0};
     state.timeoutGiven = false;
+    state.currentStreak = {team: null, count: 0};
+    clearServeCountdown();
     if(leader && state.setsWon[leader] >= SETS_TO_WIN){
       state.matchOver = true;
     } else {
@@ -1159,10 +1271,12 @@
 
   function resetMatch(){
     if(!confirm('¿Reiniciar todo el partido?')) return;
+    clearServeCountdown();
     state = {
       score:{A:0,B:0}, setsWon:{A:0,B:0}, setHistory:[],
       serve:'A', matchOver:false, history:[],
-      timeoutGiven:false, courtSwap:false, pointsLog:[]
+      timeoutGiven:false, courtSwap:false, pointsLog:[],
+      currentStreak:{team:null, count:0}
     };
     render();
   }
@@ -1281,6 +1395,18 @@
     highContrastOn = !highContrastOn;
     document.body.classList.toggle('high-contrast', highContrastOn);
     els.contrastToggle.classList.toggle('active', highContrastOn);
+  });
+
+  els.crazyModeToggle.addEventListener('click', ()=>{
+    crazyModeOn = !crazyModeOn;
+    els.crazyModeToggle.classList.toggle('active', crazyModeOn);
+    if(crazyModeOn){
+      flashBanner('🔥 Modo Locura activado: 8s de cuenta atrás tras cada punto');
+      say('Modo Locura activado');
+    } else {
+      clearServeCountdown();
+      say('Modo Locura desactivado');
+    }
   });
 
   els.fullscreenToggle.addEventListener('click', async ()=>{
