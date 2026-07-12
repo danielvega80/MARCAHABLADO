@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0e6e83">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>Marcador Vóley Playa</title>
+<style>
+  :root{
+    --sand-1:#f6e9cf;
+    --sand-2:#e8cd9c;
+    --sand-3:#c9a86a;
+    --sea-1:#0e6e83;
+    --sea-2:#0a4f60;
+    --sea-deep:#083b47;
+    --coral:#ff6b4a;
+    --coral-dark:#e0502f;
+    --ink:#0a2e35;
+    --line: rgba(10,46,53,0.15);
+    --font-display: 'Rockwell', 'Arial Black', 'Segoe UI', sans-serif;
+    --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'Courier New', monospace;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{
+    margin:0; padding:0; height:100%;
+    background:
+      radial-gradient(circle at 15% -10%, rgba(255,255,255,0.5), transparent 45%),
+      linear-gradient(180deg, var(--sand-1) 0%, var(--sand-2) 55%, var(--sand-3) 100%);
+    font-family:var(--font-body);
+    color:var(--ink);
+    overflow-x:hidden;
+    user-select:none;
+  }
+  .wave-strip{
+    height:14px;
+    width:100%;
+    background:
+      radial-gradient(circle at 10px -4px, transparent 10px, var(--sea-1) 11px) 0 0/24px 100% repeat-x;
+    opacity:0.85;
+  }
+  header{
+    padding:14px 16px 8px;
+    display:flex; align-items:center; justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .brand{
+    display:flex; flex-direction:column; line-height:1.05;
+  }
+  .brand .eyebrow{
+    font-family:var(--font-mono);
+    font-size:10px;
+    letter-spacing:0.18em;
+    color:var(--sea-2);
+    text-transform:uppercase;
+    opacity:0.75;
+  }
+  .brand h1{
+    margin:2px 0 0;
+    font-family:var(--font-display);
+    font-size:22px;
+    letter-spacing:0.02em;
+    color:var(--ink);
+  }
+  .controls-top{
+    display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+  }
+  button.chip{
+    border:none;
+    background:rgba(10,46,53,0.08);
+    color:var(--ink);
+    padding:8px 12px;
+    border-radius:999px;
+    font-family:var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    cursor:pointer;
+    display:flex; align-items:center; gap:6px;
+  }
+  button.chip.active{
+    background:var(--sea-1);
+    color:var(--sand-1);
+  }
+  button.chip:active{ transform:scale(0.96); }
+
+  .sets-row{
+    display:flex; justify-content:center; gap:6px;
+    padding:2px 16px 6px;
+  }
+  .set-pill{
+    font-family:var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.08em;
+    padding:4px 10px;
+    border-radius:999px;
+    background:rgba(10,46,53,0.06);
+    color:var(--sea-2);
+  }
+  .set-pill.done{
+    background:var(--sea-2);
+    color:var(--sand-1);
+  }
+
+  main{
+    display:grid;
+    grid-template-columns:1fr auto 1fr;
+    gap:0;
+    align-items:stretch;
+    padding:6px 10px 10px;
+    min-height:62vh;
+  }
+  .team{
+    display:flex; flex-direction:column;
+    border-radius:20px;
+    padding:14px 12px 18px;
+    position:relative;
+    overflow:hidden;
+  }
+  .team.a{
+    background:linear-gradient(160deg, var(--sea-1), var(--sea-2));
+    color:var(--sand-1);
+    margin-right:4px;
+  }
+  .team.b{
+    background:linear-gradient(160deg, var(--coral), var(--coral-dark));
+    color:#fff6ee;
+    margin-left:4px;
+  }
+  .team-name{
+    background:transparent;
+    border:none;
+    color:inherit;
+    font-family:var(--font-display);
+    font-size:16px;
+    letter-spacing:0.03em;
+    text-align:center;
+    width:100%;
+    padding:4px;
+    text-transform:uppercase;
+  }
+  .team-name:focus{ outline: 1px dashed rgba(255,255,255,0.6); border-radius:6px; }
+
+  .serve-dot{
+    position:absolute;
+    top:14px; left:14px;
+    width:10px; height:10px;
+    border-radius:50%;
+    background:#ffe37a;
+    box-shadow:0 0 0 3px rgba(255,227,122,0.25);
+    opacity:0;
+    transition:opacity 0.2s;
+  }
+  .serve-dot.show{ opacity:1; }
+
+  .score-display{
+    flex:1;
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-display);
+    font-size:min(26vw, 150px);
+    line-height:1;
+    letter-spacing:-0.02em;
+    padding:4px 0;
+  }
+
+  .score-btn{
+    border:none;
+    background:rgba(255,255,255,0.16);
+    color:inherit;
+    font-family:var(--font-body);
+    font-weight:700;
+    font-size:15px;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    border-radius:14px;
+    padding:14px 10px;
+    cursor:pointer;
+  }
+  .score-btn:active{ background:rgba(255,255,255,0.3); transform:scale(0.98); }
+
+  .minor-row{
+    display:flex; gap:8px; margin-top:8px;
+  }
+  .minus-btn{
+    flex:1;
+    border:none;
+    background:rgba(0,0,0,0.15);
+    color:inherit;
+    font-family:var(--font-mono);
+    font-size:12px;
+    padding:9px 6px;
+    border-radius:10px;
+    cursor:pointer;
+  }
+  .minus-btn:active{ background:rgba(0,0,0,0.28); }
+
+  .net{
+    width:30px;
+    display:flex; align-items:center; justify-content:center;
+    color:var(--sea-2);
+  }
+  .net .divider{
+    font-family:var(--font-display);
+    font-size:15px;
+    opacity:0.5;
+  }
+
+  footer{
+    padding:6px 16px 26px;
+    display:flex; justify-content:center; gap:10px;
+    flex-wrap:wrap;
+  }
+  button.util{
+    border:1px solid var(--line);
+    background:rgba(255,255,255,0.5);
+    color:var(--ink);
+    padding:10px 16px;
+    border-radius:12px;
+    font-family:var(--font-mono);
+    font-size:12px;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    cursor:pointer;
+  }
+  button.util:active{ background:rgba(255,255,255,0.85); }
+
+  .announce-banner{
+    position:fixed;
+    left:50%; top:10px;
+    transform:translateX(-50%) translateY(-30px);
+    background:var(--ink);
+    color:var(--sand-1);
+    font-family:var(--font-mono);
+    font-size:12px;
+    letter-spacing:0.06em;
+    padding:8px 16px;
+    border-radius:999px;
+    opacity:0;
+    transition:all 0.25s ease;
+    pointer-events:none;
+    z-index:50;
+    white-space:nowrap;
+  }
+  .announce-banner.show{
+    opacity:1;
+    transform:translateX(-50%) translateY(0);
+  }
+
+  .match-over{
+    text-align:center;
+    font-family:var(--font-display);
+    font-size:15px;
+    color:var(--sea-2);
+    padding:0 16px 8px;
+    min-height:20px;
+  }
+
+  @media (min-width:700px){
+    .score-display{ font-size:120px; }
+  }
+
+  .side-tag{
+    text-align:center;
+    font-family:var(--font-mono);
+    font-size:10px;
+    letter-spacing:0.18em;
+    opacity:0.7;
+    margin-top:-2px;
+  }
+
+  .set-pill{ cursor:pointer; }
+
+  .timeout-overlay{
+    position:fixed; inset:0;
+    background:rgba(8,30,35,0.94);
+    display:none;
+    align-items:center; justify-content:center;
+    z-index:100;
+    flex-direction:column;
+  }
+  .timeout-overlay.show{ display:flex; }
+  .timeout-card{
+    text-align:center;
+    color:var(--sand-1);
+  }
+  .timeout-label{
+    font-family:var(--font-mono);
+    font-size:14px;
+    letter-spacing:0.3em;
+    opacity:0.8;
+    margin-bottom:10px;
+  }
+  .timeout-count{
+    font-family:var(--font-display);
+    font-size:110px;
+    line-height:1;
+    margin-bottom:24px;
+  }
+
+  /* Modo apaisado: aprovechar el ancho, botones más grandes y compactar cabecera */
+  @media (orientation: landscape) and (max-height:520px){
+    header{ padding:8px 12px 4px; }
+    .brand h1{ font-size:16px; }
+    .brand .eyebrow{ display:none; }
+    .sets-row{ padding:0 12px 4px; }
+    main{ min-height:auto; padding:4px 8px; }
+    .team{ padding:8px 10px 10px; }
+    .score-display{ font-size:min(16vw, 130px); }
+    .team-name{ font-size:13px; }
+    footer{ padding:4px 12px 12px; }
+  }
+
+  .settings-panel{
+    display:none;
+    margin:0 16px 10px;
+    padding:14px;
+    background:rgba(255,255,255,0.6);
+    border:1px solid var(--line);
+    border-radius:16px;
+    flex-direction:column;
+    gap:10px;
+  }
+  .settings-panel.show{ display:flex; }
+  .settings-panel label{
+    display:flex; flex-direction:column; gap:4px;
+    font-family:var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.05em;
+    color:var(--sea-2);
+    text-transform:uppercase;
+  }
+  .settings-panel input, .settings-panel select{
+    font-family:var(--font-body);
+    font-size:14px;
+    padding:8px 10px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    background:#fff;
+    color:var(--ink);
+    text-transform:none;
+    letter-spacing:normal;
+  }
+  .settings-note{
+    font-family:var(--font-mono);
+    font-size:11px;
+    color:var(--sea-2);
+    opacity:0.85;
+  }
+
+  .tournament-note{
+    text-align:center;
+    font-family:var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.05em;
+    color:var(--sea-2);
+    opacity:0.8;
+    padding:0 16px 12px;
+    min-height:14px;
+  }
+
+  /* Modo alto contraste: pantalla directa al sol */
+  body.high-contrast{
+    background: #050708;
+  }
+  body.high-contrast .wave-strip{ opacity:0.4; }
+  body.high-contrast header,
+  body.high-contrast .sets-row,
+  body.high-contrast .match-over{
+    color:#fff;
+  }
+  body.high-contrast .brand h1,
+  body.high-contrast .brand .eyebrow{
+    color:#fff;
+  }
+  body.high-contrast button.chip{
+    background:rgba(255,255,255,0.12);
+    color:#fff;
+  }
+  body.high-contrast button.chip.active{
+    background:#ffe000;
+    color:#000;
+  }
+  body.high-contrast .set-pill{
+    background:rgba(255,255,255,0.1);
+    color:#fff;
+  }
+  body.high-contrast .set-pill.done{
+    background:#ffe000;
+    color:#000;
+  }
+  body.high-contrast .team.a{
+    background:#000;
+    color:#00e5ff;
+    border:3px solid #00e5ff;
+  }
+  body.high-contrast .team.b{
+    background:#000;
+    color:#ffe000;
+    border:3px solid #ffe000;
+  }
+  body.high-contrast .score-display{
+    font-size:min(30vw, 190px);
+    text-shadow:0 0 18px currentColor;
+  }
+  body.high-contrast .score-btn{
+    background:rgba(255,255,255,0.14);
+    color:#fff;
+    font-weight:900;
+  }
+  body.high-contrast .team-name{ color:#fff; }
+  body.high-contrast .side-tag{ color:#fff; opacity:0.9; }
+  body.high-contrast .settings-panel{
+    background:#111;
+    border-color:rgba(255,255,255,0.2);
+  }
+  body.high-contrast .settings-panel input,
+  body.high-contrast .settings-panel select{
+    background:#000; color:#fff; border-color:rgba(255,255,255,0.3);
+  }
+  body.high-contrast button.util{
+    background:rgba(255,255,255,0.1);
+    color:#fff;
+    border-color:rgba(255,255,255,0.25);
+  }
+</style>
+</head>
+<body>
+
+<div class="wave-strip"></div>
+
+<header>
+  <div class="brand">
+    <span class="eyebrow">Vóley Playa · Set a 21 · diferencia de 2</span>
+    <h1>Marcador</h1>
+  </div>
+  <div class="controls-top">
+    <button class="chip active" id="voiceModeToggle">🔊 Voz: Todo</button>
+    <button class="chip" id="voiceLangToggle">ES España</button>
+    <button class="chip" id="vibrateToggle">📳 Vibración</button>
+    <button class="chip" id="wakeToggle">☀️ Pantalla</button>
+    <button class="chip" id="proVoiceToggle">🎙️ Voz Pro</button>
+    <button class="chip" id="contrastToggle">🌞 Alto contraste</button>
+    <button class="chip" id="fullscreenToggle">⛶ Completa</button>
+    <button class="chip" id="settingsToggle">⚙️</button>
+  </div>
+</header>
+
+<div class="settings-panel" id="settingsPanel">
+  <label>
+    URL del Worker (Voz Pro)
+    <input type="text" id="workerUrlInput" placeholder="https://voz-pro.tuusuario.workers.dev">
+  </label>
+  <label>
+    Voz de Azure
+    <select id="azureVoiceSelect">
+      <option value="es-ES-XimenaNeural">Ximena (ES, femenina, cálida)</option>
+      <option value="es-ES-AlvaroNeural">Álvaro (ES, masculina, neutra)</option>
+      <option value="es-ES-ArnauNeural">Arnau (ES, masculina, enérgica)</option>
+      <option value="es-MX-DaliaNeural">Dalia (MX, femenina)</option>
+      <option value="es-MX-JorgeNeural">Jorge (MX, masculina)</option>
+    </select>
+  </label>
+  <div class="settings-note" id="proVoiceStatus">Voz Pro desactivada — usando la voz del navegador.</div>
+  <button class="util" id="settingsClose">Cerrar</button>
+</div>
+
+<div class="sets-row" id="setsRow"></div>
+<div class="match-over" id="matchOver"></div>
+
+<main>
+  <div class="team a">
+    <div class="serve-dot" id="serveA"></div>
+    <input class="team-name" id="nameA" value="EQUIPO A" maxlength="16">
+    <div class="side-tag" id="sideA">IZQUIERDA</div>
+    <div class="score-display" id="scoreA">0</div>
+    <button class="score-btn" data-team="A">+ Punto Equipo A</button>
+    <div class="minor-row">
+      <button class="minus-btn" data-team="A" data-action="minus">−1</button>
+      <button class="minus-btn" data-team="A" data-action="serve">Saque</button>
+    </div>
+  </div>
+
+  <div class="net"><span class="divider">·</span></div>
+
+  <div class="team b">
+    <div class="serve-dot" id="serveB"></div>
+    <input class="team-name" id="nameB" value="EQUIPO B" maxlength="16">
+    <div class="side-tag" id="sideB">DERECHA</div>
+    <div class="score-display" id="scoreB">0</div>
+    <button class="score-btn" data-team="B">+ Punto Equipo B</button>
+    <div class="minor-row">
+      <button class="minus-btn" data-team="B" data-action="minus">−1</button>
+      <button class="minus-btn" data-team="B" data-action="serve">Saque</button>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <button class="util" id="undoBtn">↺ Deshacer</button>
+  <button class="util" id="newSetBtn">Nuevo set</button>
+  <button class="util" id="shareBtn">📤 Compartir</button>
+  <button class="util" id="exportBtn">⬇ Exportar</button>
+  <button class="util" id="saveMatchBtn">🏐 Guardar y nuevo partido</button>
+  <button class="util" id="exportTournamentBtn">⬇ Exportar torneo</button>
+  <button class="util" id="resetBtn">Reiniciar partido</button>
+</footer>
+<div class="tournament-note" id="tournamentNote"></div>
+
+<div class="announce-banner" id="banner"></div>
+
+<div class="timeout-overlay" id="timeoutOverlay">
+  <div class="timeout-card">
+    <div class="timeout-label">TIEMPO TÉCNICO</div>
+    <div class="timeout-count" id="timeoutCount">30</div>
+    <button class="util" id="timeoutSkip">Reanudar ahora</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  // ---------- Estado ----------
+  const SET_POINTS = 21;
+  const TIEBREAK_POINTS = 15; // tercer set decisivo
+  const WIN_BY = 2;
+  const SETS_TO_WIN = 2; // al mejor de 3
+
+  let state = {
+    score: {A:0, B:0},
+    setsWon: {A:0, B:0},
+    setHistory: [], // [{A,B}, ...] sets terminados
+    serve: 'A',
+    matchOver: false,
+    history: [], // pila para deshacer: {score, serve}
+    timeoutGiven: false, // tiempo técnico ya dado en el set actual
+    courtSwap: false, // false = A izquierda / B derecha; true = al revés
+    pointsLog: [] // [{team, a, b, set, t}, ...] para estadísticas/ritmo de juego
+  };
+
+  const els = {
+    scoreA: document.getElementById('scoreA'),
+    scoreB: document.getElementById('scoreB'),
+    nameA: document.getElementById('nameA'),
+    nameB: document.getElementById('nameB'),
+    serveA: document.getElementById('serveA'),
+    serveB: document.getElementById('serveB'),
+    sideA: document.getElementById('sideA'),
+    sideB: document.getElementById('sideB'),
+    setsRow: document.getElementById('setsRow'),
+    matchOver: document.getElementById('matchOver'),
+    banner: document.getElementById('banner'),
+    voiceModeToggle: document.getElementById('voiceModeToggle'),
+    voiceLangToggle: document.getElementById('voiceLangToggle'),
+    vibrateToggle: document.getElementById('vibrateToggle'),
+    wakeToggle: document.getElementById('wakeToggle'),
+    shareBtn: document.getElementById('shareBtn'),
+    exportBtn: document.getElementById('exportBtn'),
+    timeoutOverlay: document.getElementById('timeoutOverlay'),
+    timeoutCount: document.getElementById('timeoutCount'),
+    timeoutSkip: document.getElementById('timeoutSkip'),
+    proVoiceToggle: document.getElementById('proVoiceToggle'),
+    settingsToggle: document.getElementById('settingsToggle'),
+    settingsPanel: document.getElementById('settingsPanel'),
+    settingsClose: document.getElementById('settingsClose'),
+    workerUrlInput: document.getElementById('workerUrlInput'),
+    azureVoiceSelect: document.getElementById('azureVoiceSelect'),
+    proVoiceStatus: document.getElementById('proVoiceStatus'),
+    contrastToggle: document.getElementById('contrastToggle'),
+    fullscreenToggle: document.getElementById('fullscreenToggle'),
+    saveMatchBtn: document.getElementById('saveMatchBtn'),
+    exportTournamentBtn: document.getElementById('exportTournamentBtn'),
+    tournamentNote: document.getElementById('tournamentNote')
+  };
+
+  let voiceMode = 'all'; // 'all' | 'announcements' | 'off'
+  let voiceLang = 'es-ES';
+  const langCycle = ['es-ES','es-MX','es-US'];
+  let vibrateOn = true;
+  let wakeLockActive = false;
+  let wakeLockRef = null;
+  let timeoutInterval = null;
+  let highContrastOn = false;
+  let tournamentMatches = []; // partidos guardados en esta sesión (modo torneo)
+  let audioCtx = null; // para el silbato
+
+  // ---------- Voz Pro (Azure TTS vía Worker propio) ----------
+  let proVoiceOn = false;
+  let workerUrl = '';
+  let azureVoice = 'es-ES-XimenaNeural';
+  let proAudioQueue = Promise.resolve(); // encadena los audios para que no se pisen
+  let proVoiceFailedOnce = false; // si falla, avisamos una vez y no insistimos cada punto
+
+  function currentSetTarget(){
+    // tercer set (índice 2, 0-based) es el decisivo a 15
+    const setIndex = state.setHistory.length;
+    return setIndex === 2 ? TIEBREAK_POINTS : SET_POINTS;
+  }
+
+  function teamName(t){
+    return t === 'A' ? els.nameA.value.trim() || 'Equipo A' : els.nameB.value.trim() || 'Equipo B';
+  }
+
+  function say(text){
+    announce([text]);
+  }
+
+  function pick(arr){
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  // Habla varias frases en orden (ej. resultado + aviso de cambio de campo)
+  // sin que se corten entre sí ni con el aviso anterior.
+  // Cada item puede ser un string simple, o {text, pitch, rate} para variar
+  // la entonación según lo importante/dramático que sea el aviso.
+  function announce(messages){
+    if(voiceMode === 'off') return;
+    if(!messages || !messages.length) return;
+
+    if(proVoiceOn && workerUrl){
+      announcePro(messages);
+      return;
+    }
+    announceBrowser(messages);
+  }
+
+  function announceBrowser(messages){
+    if(!('speechSynthesis' in window)) return;
+    try{
+      const synth = window.speechSynthesis;
+      const speakAll = ()=>{
+        messages.forEach(item=>{
+          const msg = (typeof item === 'string') ? {text: item} : item;
+          const u = new SpeechSynthesisUtterance(msg.text);
+          u.lang = voiceLang;
+          u.rate = msg.rate || 1.0;
+          u.pitch = msg.pitch || 1.0;
+          u.volume = 1.0;
+          synth.speak(u);
+        });
+      };
+      if(synth.speaking || synth.pending){
+        synth.cancel();
+        // en móvil, hablar justo después de cancel() corta el arranque del audio
+        // (se pierde el principio de la frase, ej. el nombre del equipo)
+        setTimeout(speakAll, 80);
+      } else {
+        speakAll();
+      }
+    }catch(e){ /* silencioso */ }
+  }
+
+  // Voz Pro: pide el audio a Azure TTS (vía tu Worker) y lo reproduce.
+  // Si falla (sin internet, Worker caído, URL mal puesta...) cae automáticamente
+  // a la voz del navegador para esa misma frase, sin cortar el marcador.
+  function announcePro(messages){
+    // convertir multiplicadores de tono/velocidad (0.8-1.15) a porcentaje para Azure
+    const toPct = (v)=> Math.round(((v || 1.0) - 1) * 100);
+
+    messages.forEach(item=>{
+      const msg = (typeof item === 'string') ? {text: item} : item;
+      proAudioQueue = proAudioQueue.then(()=> playProAudio(msg, toPct));
+    });
+  }
+
+  function playProAudio(msg, toPct){
+    return fetch(workerUrl, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        text: msg.text,
+        voice: azureVoice,
+        rate: toPct(msg.rate),
+        pitch: toPct(msg.pitch)
+      })
+    })
+    .then(resp=>{
+      if(!resp.ok) throw new Error('worker_error_' + resp.status);
+      return resp.blob();
+    })
+    .then(blob=> new Promise((resolve)=>{
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.volume = 1.0;
+      audio.onended = ()=>{ URL.revokeObjectURL(url); resolve(); };
+      audio.onerror = ()=>{ URL.revokeObjectURL(url); resolve(); };
+      audio.play().catch(()=> resolve());
+    }))
+    .catch(()=>{
+      // fallback silencioso a la voz del navegador, solo avisamos una vez
+      if(!proVoiceFailedOnce){
+        proVoiceFailedOnce = true;
+        flashBanner('⚠️ Voz Pro no responde, usando voz normal');
+      }
+      announceBrowser([msg]);
+    });
+  }
+
+  // Cambio de campo cada 7 puntos (suma de ambos) en sets 1 y 2,
+  // y cada 5 puntos en el set decisivo (tercero) — regla oficial de vóley playa.
+  function changeInterval(){
+    const setIndex = state.setHistory.length;
+    return setIndex === 2 ? 5 : 7;
+  }
+
+  function isSetEndingScore(a, b){
+    const target = currentSetTarget();
+    const leader = a > b ? 'A' : (b > a ? 'B' : null);
+    return !!(leader && Math.max(a,b) >= target && Math.abs(a-b) >= WIN_BY);
+  }
+
+  // Construye el anuncio del tanto con frases variadas y algo de entonación,
+  // en vez de repetir siempre la misma frase robótica.
+  function pointPhrase(scorerTeam, a, b){
+    const scorer = teamName(scorerTeam);
+    const scoreLine = teamName('A') + ' ' + a + ', ' + teamName('B') + ' ' + b;
+
+    if(a === b){
+      const tieTemplates = [
+        'Empate a ' + a,
+        'Igualan a ' + a,
+        'Y se ponen iguales, a ' + a
+      ];
+      return {text: pick(tieTemplates), pitch: 1.1, rate: 1.0};
+    }
+
+    const templates = [
+      scorer + ' anota. ' + scoreLine,
+      'Punto para ' + scorer + '. ' + scoreLine,
+      scorer + ' suma uno más. ' + scoreLine,
+      'Y sigue ' + scorer + '. ' + scoreLine,
+      scoreLine
+    ];
+    return {text: pick(templates), pitch: 1.0, rate: 1.0};
+  }
+
+  // Detecta si, tras este punto, alguno de los dos equipos está a un tanto
+  // de ganar el set (o el partido), para avisar con más gravedad en la voz.
+  function pointStakes(a, b, setEnds){
+    if(setEnds) return [];
+    const stakes = [];
+    ['A','B'].forEach(t=>{
+      const na = t === 'A' ? a + 1 : a;
+      const nb = t === 'B' ? b + 1 : b;
+      if(isSetEndingScore(na, nb)){
+        const wouldWinMatch = (state.setsWon[t] + 1) >= SETS_TO_WIN;
+        const label = wouldWinMatch
+          ? 'Punto de partido para ' + teamName(t)
+          : 'Punto de set para ' + teamName(t);
+        stakes.push({text: label, pitch: 0.85, rate: 0.92});
+      }
+    });
+    return stakes;
+  }
+
+  function buzz(pattern){
+    if(!vibrateOn) return;
+    if('vibrate' in navigator){
+      try{ navigator.vibrate(pattern); }catch(e){ /* silencioso */ }
+    }
+  }
+
+  // Silbato corto sintetizado (sin archivos externos) para que el aviso de
+  // cambio de campo / tiempo técnico se note aunque haya viento o ruido de público.
+  function whistle(kind){
+    try{
+      if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if(audioCtx.state === 'suspended') audioCtx.resume();
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'square';
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      if(kind === 'timeout'){
+        // dos toques cortos y graves-agudos, tipo silbato de árbitro parando el juego
+        osc.frequency.setValueAtTime(2200, now);
+        osc.frequency.setValueAtTime(1800, now + 0.12);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+        osc.start(now);
+        osc.stop(now + 0.3);
+      } else {
+        // toque único, agudo y breve, para cambio de campo
+        osc.frequency.setValueAtTime(2400, now);
+        gain.gain.setValueAtTime(0.22, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+        osc.start(now);
+        osc.stop(now + 0.2);
+      }
+    }catch(e){ /* silencioso: si el navegador bloquea audio sin interacción, no pasa nada */ }
+  }
+
+  // Tiempo técnico automático: 30s cuando el equipo que va por delante
+  // llega a 21 puntos, solo en sets jugados a 21 (no en el decisivo a 15).
+  function maybeStartTechnicalTimeout(a, b, setEnds){
+    if(setEnds || state.timeoutGiven) return false;
+    if(currentSetTarget() !== SET_POINTS) return false;
+    if(a === 21 || b === 21){
+      state.timeoutGiven = true;
+      startTimeout();
+      return true;
+    }
+    return false;
+  }
+
+  function startTimeout(){
+    let count = 30;
+    els.timeoutCount.textContent = count;
+    els.timeoutOverlay.classList.add('show');
+    whistle('timeout');
+    buzz([200,100,200]);
+    say('Tiempo técnico');
+    clearInterval(timeoutInterval);
+    timeoutInterval = setInterval(()=>{
+      count--;
+      els.timeoutCount.textContent = count;
+      if(count <= 0){
+        endTimeout();
+      }
+    }, 1000);
+  }
+
+  function endTimeout(){
+    clearInterval(timeoutInterval);
+    els.timeoutOverlay.classList.remove('show');
+    say('Se reanuda el partido');
+  }
+
+  function flashBanner(text){
+    els.banner.textContent = text;
+    els.banner.classList.add('show');
+    clearTimeout(flashBanner._t);
+    flashBanner._t = setTimeout(()=> els.banner.classList.remove('show'), 1400);
+  }
+
+  function render(){
+    els.scoreA.textContent = state.score.A;
+    els.scoreB.textContent = state.score.B;
+    els.serveA.classList.toggle('show', state.serve === 'A');
+    els.serveB.classList.toggle('show', state.serve === 'B');
+    els.sideA.textContent = state.courtSwap ? 'DERECHA' : 'IZQUIERDA';
+    els.sideB.textContent = state.courtSwap ? 'IZQUIERDA' : 'DERECHA';
+
+    // sets pills
+    els.setsRow.innerHTML = '';
+    const totalSets = Math.max(3, state.setHistory.length + 1);
+    for(let i=0;i<3;i++){
+      const pill = document.createElement('div');
+      pill.className = 'set-pill';
+      if(state.setHistory[i]){
+        pill.classList.add('done');
+        const sA = state.setHistory[i].A, sB = state.setHistory[i].B;
+        pill.textContent = sA + '-' + sB;
+        pill.addEventListener('click', ()=>{
+          flashBanner('Set ' + (i+1) + ': ' + teamName('A') + ' ' + sA + ' – ' + teamName('B') + ' ' + sB);
+        });
+      } else if(i === state.setHistory.length && !state.matchOver){
+        pill.textContent = 'Set ' + (i+1) + ' (a ' + currentSetTarget() + ')';
+      } else {
+        pill.textContent = 'Set ' + (i+1);
+        pill.style.opacity = 0.4;
+      }
+      els.setsRow.appendChild(pill);
+    }
+
+    if(state.matchOver){
+      const winner = state.setsWon.A > state.setsWon.B ? teamName('A') : teamName('B');
+      els.matchOver.textContent = '🏆 ' + winner + ' gana el partido (' + state.setsWon.A + '-' + state.setsWon.B + ')';
+    } else {
+      els.matchOver.textContent = '';
+    }
+  }
+
+  function pushHistory(){
+    state.history.push(JSON.parse(JSON.stringify({
+      score: state.score, serve: state.serve, setsWon: state.setsWon,
+      setHistory: state.setHistory, matchOver: state.matchOver,
+      timeoutGiven: state.timeoutGiven, courtSwap: state.courtSwap,
+      pointsLog: state.pointsLog
+    })));
+    if(state.history.length > 200) state.history.shift();
+  }
+
+  function checkSetEnd(){
+    const target = currentSetTarget();
+    const a = state.score.A, b = state.score.B;
+    const leader = a > b ? 'A' : (b > a ? 'B' : null);
+    if(leader && Math.max(a,b) >= target && Math.abs(a-b) >= WIN_BY){
+      // set ganado
+      state.setHistory.push({A:a, B:b});
+      state.setsWon[leader]++;
+      const finishedSetNum = state.setHistory.length;
+      const setTemplates = [
+        '¡Set para ' + teamName(leader) + '! ' + a + ' a ' + b,
+        teamName(leader) + ' se lleva el set ' + finishedSetNum + ', ' + a + ' a ' + b,
+        '¡Y el set es para ' + teamName(leader) + '! ' + a + ' a ' + b
+      ];
+      announce([{text: pick(setTemplates), pitch: 0.88, rate: 0.92}]);
+      flashBanner('SET para ' + teamName(leader));
+      buzz([120,80,120,80,250]);
+      state.score = {A:0, B:0};
+      state.timeoutGiven = false;
+
+      if(state.setsWon[leader] >= SETS_TO_WIN){
+        state.matchOver = true;
+        const matchTemplates = [
+          '¡' + teamName(leader) + ' gana el partido!',
+          '¡Y el partido es para ' + teamName(leader) + '!',
+          teamName(leader) + ' se lleva el partido'
+        ];
+        setTimeout(()=> announce([{text: pick(matchTemplates), pitch: 0.82, rate: 0.88}]), 1600);
+      } else {
+        // el que recibía saca el próximo set (regla simple: alterna)
+        state.serve = state.serve === 'A' ? 'B' : 'A';
+        state.courtSwap = !state.courtSwap;
+      }
+    }
+  }
+
+  function addPoint(team){
+    if(state.matchOver) return;
+    pushHistory();
+    state.score[team]++;
+    state.serve = team;
+    const a = state.score.A, b = state.score.B;
+    const total = a + b;
+    const interval = changeInterval();
+    const setEnds = isSetEndingScore(a, b);
+
+    buzz(40);
+
+    // registro del punto para estadísticas (JSON exportado)
+    state.pointsLog.push({team, a, b, set: state.setHistory.length + 1, t: Date.now()});
+
+    // anuncio de tanto: solo si el modo de voz es "Todo", con frase variada y entonación
+    const messages = [];
+    if(voiceMode === 'all'){
+      messages.push(pointPhrase(team, a, b));
+    }
+
+    // avisos de cambio de campo (solo si este punto no cierra ya el set)
+    let sideChanged = false;
+    if(!setEnds && total > 0){
+      if(total % interval === 0){
+        whistle('change');
+        messages.push({text:'Cambio de campo', pitch:0.95, rate:0.95});
+        flashBanner('🔄 CAMBIO DE CAMPO');
+        buzz([100,60,100]);
+        sideChanged = true;
+      } else if(total % interval === interval - 1){
+        messages.push({text:'Uno para cambio', pitch:0.95, rate:0.95});
+        flashBanner('Uno para cambio');
+      }
+    }
+
+    // punto de set / punto de partido: tono más grave y pausado, con gancho
+    messages.push(...pointStakes(a, b, setEnds));
+
+    announce(messages);
+    if(sideChanged) state.courtSwap = !state.courtSwap;
+
+    const timeoutStarted = maybeStartTechnicalTimeout(a, b, setEnds);
+    checkSetEnd();
+    render();
+  }
+
+  function minusPoint(team){
+    if(state.score[team] > 0){
+      pushHistory();
+      state.score[team]--;
+      render();
+    }
+  }
+
+  function setServe(team){
+    pushHistory();
+    state.serve = team;
+    render();
+  }
+
+  function undo(){
+    const prev = state.history[state.history.length - 1];
+    if(!prev) return;
+    // avisa si deshacer se va a cargar un set que ya se dio por cerrado
+    if(prev.setHistory.length < state.setHistory.length){
+      if(!confirm('Esto va a deshacer un set ya cerrado. ¿Seguro?')) return;
+    }
+    state.history.pop();
+    state.score = prev.score;
+    state.serve = prev.serve;
+    state.setsWon = prev.setsWon;
+    state.setHistory = prev.setHistory;
+    state.matchOver = prev.matchOver;
+    state.timeoutGiven = prev.timeoutGiven;
+    state.courtSwap = prev.courtSwap;
+    state.pointsLog = prev.pointsLog;
+    render();
+  }
+
+  function newSetManual(){
+    if(state.score.A === 0 && state.score.B === 0) return;
+    pushHistory();
+    state.setHistory.push({A: state.score.A, B: state.score.B});
+    // determina ganador manual del set en curso sin exigir la regla estricta,
+    // por si el marcador se cierra a mano
+    const leader = state.score.A > state.score.B ? 'A' : (state.score.B > state.score.A ? 'B' : null);
+    if(leader) state.setsWon[leader]++;
+    state.score = {A:0, B:0};
+    state.timeoutGiven = false;
+    if(leader && state.setsWon[leader] >= SETS_TO_WIN){
+      state.matchOver = true;
+    } else {
+      state.serve = state.serve === 'A' ? 'B' : 'A';
+      state.courtSwap = !state.courtSwap;
+    }
+    render();
+  }
+
+  function resetMatch(){
+    if(!confirm('¿Reiniciar todo el partido?')) return;
+    state = {
+      score:{A:0,B:0}, setsWon:{A:0,B:0}, setHistory:[],
+      serve:'A', matchOver:false, history:[],
+      timeoutGiven:false, courtSwap:false, pointsLog:[]
+    };
+    render();
+  }
+
+  // ---------- Compartir / exportar ----------
+  function buildSummaryText(){
+    const lines = [teamName('A') + ' vs ' + teamName('B')];
+    state.setHistory.forEach((s, i)=>{
+      lines.push('Set ' + (i+1) + ': ' + s.A + '-' + s.B);
+    });
+    if(!state.matchOver && (state.score.A > 0 || state.score.B > 0)){
+      lines.push('Set ' + (state.setHistory.length + 1) + ' (en curso): ' + state.score.A + '-' + state.score.B);
+    }
+    lines.push('Sets: ' + state.setsWon.A + '-' + state.setsWon.B);
+    if(state.matchOver){
+      const winner = state.setsWon.A > state.setsWon.B ? teamName('A') : teamName('B');
+      lines.push('🏆 Gana ' + winner);
+    }
+    return lines.join('\n');
+  }
+
+  function shareResult(){
+    const text = buildSummaryText();
+    const url = 'https://wa.me/?text=' + encodeURIComponent(text);
+    window.open(url, '_blank');
+  }
+
+  function matchToObject(){
+    return {
+      teamA: teamName('A'),
+      teamB: teamName('B'),
+      setHistory: state.setHistory,
+      currentSet: state.score,
+      setsWon: state.setsWon,
+      matchOver: state.matchOver,
+      pointsLog: state.pointsLog,
+      exportedAt: new Date().toISOString()
+    };
+  }
+
+  function downloadJSON(data, filename){
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function exportResult(){
+    downloadJSON(matchToObject(), 'partido-voley-playa-' + Date.now() + '.json');
+  }
+
+  // ---------- Modo torneo: varios partidos en la misma sesión ----------
+  function updateTournamentNote(){
+    if(tournamentMatches.length === 0){
+      els.tournamentNote.textContent = '';
+    } else {
+      els.tournamentNote.textContent = '🏐 Partidos guardados en esta sesión: ' + tournamentMatches.length;
+    }
+  }
+
+  function saveMatchAndStartNew(){
+    const hasContent = state.setHistory.length > 0 || state.score.A > 0 || state.score.B > 0;
+    if(!hasContent){
+      flashBanner('Todavía no hay nada que guardar');
+      return;
+    }
+    tournamentMatches.push(matchToObject());
+    updateTournamentNote();
+    flashBanner('✅ Partido guardado (' + tournamentMatches.length + ' en total)');
+    state = {
+      score:{A:0,B:0}, setsWon:{A:0,B:0}, setHistory:[],
+      serve:'A', matchOver:false, history:[],
+      timeoutGiven:false, courtSwap:false, pointsLog:[]
+    };
+    render();
+  }
+
+  function exportTournament(){
+    if(tournamentMatches.length === 0 && state.pointsLog.length === 0){
+      flashBanner('No hay partidos guardados todavía');
+      return;
+    }
+    const all = tournamentMatches.slice();
+    // incluye también el partido en curso si tiene contenido, sin perderlo
+    if(state.setHistory.length > 0 || state.score.A > 0 || state.score.B > 0){
+      all.push(matchToObject());
+    }
+    downloadJSON({matches: all, exportedAt: new Date().toISOString()}, 'torneo-voley-playa-' + Date.now() + '.json');
+  }
+
+  // ---------- Eventos ----------
+  document.querySelectorAll('.score-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=> addPoint(btn.dataset.team));
+  });
+  document.querySelectorAll('.minus-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      if(btn.dataset.action === 'minus') minusPoint(btn.dataset.team);
+      if(btn.dataset.action === 'serve') setServe(btn.dataset.team);
+    });
+  });
+  document.getElementById('undoBtn').addEventListener('click', undo);
+  document.getElementById('newSetBtn').addEventListener('click', newSetManual);
+  document.getElementById('resetBtn').addEventListener('click', resetMatch);
+  els.shareBtn.addEventListener('click', shareResult);
+  els.exportBtn.addEventListener('click', exportResult);
+  els.timeoutSkip.addEventListener('click', endTimeout);
+  els.saveMatchBtn.addEventListener('click', saveMatchAndStartNew);
+  els.exportTournamentBtn.addEventListener('click', exportTournament);
+
+  els.contrastToggle.addEventListener('click', ()=>{
+    highContrastOn = !highContrastOn;
+    document.body.classList.toggle('high-contrast', highContrastOn);
+    els.contrastToggle.classList.toggle('active', highContrastOn);
+  });
+
+  els.fullscreenToggle.addEventListener('click', async ()=>{
+    try{
+      if(!document.fullscreenElement){
+        await document.documentElement.requestFullscreen();
+        els.fullscreenToggle.classList.add('active');
+        // el bloqueo de orientación solo funciona en pantalla completa,
+        // y solo lo soportan algunos navegadores (sobre todo Android Chrome)
+        if(screen.orientation && screen.orientation.lock){
+          try{ await screen.orientation.lock('landscape'); }
+          catch(e){ /* iOS Safari y algunos navegadores no lo permiten: no pasa nada */ }
+        }
+      } else {
+        if(screen.orientation && screen.orientation.unlock){
+          try{ screen.orientation.unlock(); }catch(e){}
+        }
+        await document.exitFullscreen();
+        els.fullscreenToggle.classList.remove('active');
+      }
+    }catch(e){
+      flashBanner('Este navegador no permite pantalla completa aquí');
+    }
+  });
+
+  document.addEventListener('fullscreenchange', ()=>{
+    els.fullscreenToggle.classList.toggle('active', !!document.fullscreenElement);
+  });
+
+  const voiceModeLabels = {all:'🔊 Voz: Todo', announcements:'🔔 Voz: Avisos', off:'🔇 Voz: Silencio'};
+  const voiceModeCycle = ['all','announcements','off'];
+  els.voiceModeToggle.addEventListener('click', ()=>{
+    const idx = voiceModeCycle.indexOf(voiceMode);
+    voiceMode = voiceModeCycle[(idx+1) % voiceModeCycle.length];
+    els.voiceModeToggle.textContent = voiceModeLabels[voiceMode];
+    els.voiceModeToggle.classList.toggle('active', voiceMode !== 'off');
+    if(voiceMode !== 'off') say('Voz: ' + (voiceMode === 'all' ? 'todo' : 'solo avisos'));
+  });
+
+  els.voiceLangToggle.addEventListener('click', ()=>{
+    const idx = langCycle.indexOf(voiceLang);
+    voiceLang = langCycle[(idx+1) % langCycle.length];
+    const labels = {'es-ES':'ES España','es-MX':'ES México','es-US':'ES Latino'};
+    els.voiceLangToggle.textContent = labels[voiceLang];
+    say('Voz cambiada');
+  });
+
+  els.vibrateToggle.addEventListener('click', ()=>{
+    vibrateOn = !vibrateOn;
+    els.vibrateToggle.classList.toggle('active', vibrateOn);
+    if(vibrateOn) buzz(40);
+  });
+
+  async function acquireWakeLock(){
+    if(!('wakeLock' in navigator)) return false;
+    try{
+      wakeLockRef = await navigator.wakeLock.request('screen');
+      wakeLockRef.addEventListener('release', ()=>{ wakeLockActive = false; });
+      return true;
+    }catch(e){ return false; }
+  }
+
+  els.wakeToggle.addEventListener('click', async ()=>{
+    if(!wakeLockActive){
+      const ok = await acquireWakeLock();
+      wakeLockActive = ok;
+      els.wakeToggle.classList.toggle('active', ok);
+      if(!ok) flashBanner('Este navegador no permite mantener la pantalla encendida');
+    } else {
+      if(wakeLockRef) wakeLockRef.release();
+      wakeLockActive = false;
+      els.wakeToggle.classList.remove('active');
+    }
+  });
+
+  document.addEventListener('visibilitychange', ()=>{
+    if(wakeLockActive && document.visibilityState === 'visible'){
+      acquireWakeLock().then(ok=>{ wakeLockActive = ok; });
+    }
+  });
+
+  // ---------- Voz Pro: panel de ajustes ----------
+  els.settingsToggle.addEventListener('click', ()=>{
+    els.settingsPanel.classList.toggle('show');
+  });
+  els.settingsClose.addEventListener('click', ()=>{
+    els.settingsPanel.classList.remove('show');
+  });
+  els.workerUrlInput.addEventListener('change', ()=>{
+    workerUrl = els.workerUrlInput.value.trim();
+    proVoiceFailedOnce = false;
+    updateProVoiceStatus();
+  });
+  els.azureVoiceSelect.addEventListener('change', ()=>{
+    azureVoice = els.azureVoiceSelect.value;
+  });
+
+  function updateProVoiceStatus(){
+    if(!proVoiceOn){
+      els.proVoiceStatus.textContent = 'Voz Pro desactivada — usando la voz del navegador.';
+    } else if(!workerUrl){
+      els.proVoiceStatus.textContent = '⚠️ Falta la URL del Worker. Pégala arriba para activar Voz Pro.';
+    } else {
+      els.proVoiceStatus.textContent = '✅ Voz Pro activa, hablando con ' + azureVoice + '.';
+    }
+  }
+
+  els.proVoiceToggle.addEventListener('click', ()=>{
+    proVoiceOn = !proVoiceOn;
+    proVoiceFailedOnce = false;
+    els.proVoiceToggle.classList.toggle('active', proVoiceOn);
+    updateProVoiceStatus();
+    if(proVoiceOn && !workerUrl){
+      els.settingsPanel.classList.add('show');
+      flashBanner('Configura la URL del Worker para usar Voz Pro');
+    } else if(proVoiceOn){
+      announce([{text:'Voz Pro activada'}]);
+    } else {
+      say('Voz Pro desactivada');
+    }
+  });
+
+  // Desbloqueo de audio en iOS: primera interacción táctil
+  document.body.addEventListener('touchstart', function unlock(){
+    if('speechSynthesis' in window){
+      const u = new SpeechSynthesisUtterance(' ');
+      u.volume = 0;
+      window.speechSynthesis.speak(u);
+    }
+    if(!audioCtx){
+      try{ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){}
+    }
+    if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    document.body.removeEventListener('touchstart', unlock);
+  }, {once:true});
+
+  // Registro del service worker (PWA offline). Solo funciona servido por
+  // http(s) — si abres el archivo directo con file:// no pasa nada, se ignora.
+  if('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')){
+    window.addEventListener('load', ()=>{
+      navigator.serviceWorker.register('sw.js').catch(()=>{ /* silencioso */ });
+    });
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
