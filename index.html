@@ -663,48 +663,54 @@
   // Cada item puede ser un string simple, o {text, pitch, rate} para variar
   // la entonación según lo importante/dramático que sea el aviso.
   function announce(messages){
-    if(voiceMode === 'off') return;
-    if(!messages || !messages.length) return;
+    if(voiceMode === 'off') return Promise.resolve();
+    if(!messages || !messages.length) return Promise.resolve();
 
     if(proVoiceOn && workerUrl){
-      announcePro(messages);
-      return;
+      return announcePro(messages);
     }
-    announceBrowser(messages);
+    return announceBrowser(messages);
   }
 
   function announceBrowser(messages){
-    if(!('speechSynthesis' in window)) return;
-    try{
-      const synth = window.speechSynthesis;
-      const chosenVoice = selectedVoiceName
-        ? synth.getVoices().find(v => v.name === selectedVoiceName)
-        : null;
-      const speakAll = ()=>{
-        messages.forEach(item=>{
-          const msg = (typeof item === 'string') ? {text: item} : item;
-          const u = new SpeechSynthesisUtterance(msg.text);
-          if(chosenVoice){
-            u.voice = chosenVoice;
-            u.lang = chosenVoice.lang;
-          } else {
-            u.lang = voiceLang;
-          }
-          u.rate = msg.rate || 1.0;
-          u.pitch = msg.pitch || 1.0;
-          u.volume = 1.0;
-          synth.speak(u);
-        });
-      };
-      if(synth.speaking || synth.pending){
-        synth.cancel();
-        // en móvil, hablar justo después de cancel() corta el arranque del audio
-        // (se pierde el principio de la frase, ej. el nombre del equipo)
-        setTimeout(speakAll, 80);
-      } else {
-        speakAll();
-      }
-    }catch(e){ /* silencioso */ }
+    if(!('speechSynthesis' in window)) return Promise.resolve();
+    return new Promise((resolve)=>{
+      try{
+        const synth = window.speechSynthesis;
+        const chosenVoice = selectedVoiceName
+          ? synth.getVoices().find(v => v.name === selectedVoiceName)
+          : null;
+        const speakAll = ()=>{
+          if(!messages.length){ resolve(); return; }
+          messages.forEach((item, idx)=>{
+            const msg = (typeof item === 'string') ? {text: item} : item;
+            const u = new SpeechSynthesisUtterance(msg.text);
+            if(chosenVoice){
+              u.voice = chosenVoice;
+              u.lang = chosenVoice.lang;
+            } else {
+              u.lang = voiceLang;
+            }
+            u.rate = msg.rate || 1.0;
+            u.pitch = msg.pitch || 1.0;
+            u.volume = 1.0;
+            if(idx === messages.length - 1){
+              u.onend = ()=> resolve();
+              u.onerror = ()=> resolve();
+            }
+            synth.speak(u);
+          });
+        };
+        if(synth.speaking || synth.pending){
+          synth.cancel();
+          // en móvil, hablar justo después de cancel() corta el arranque del audio
+          // (se pierde el principio de la frase, ej. el nombre del equipo)
+          setTimeout(speakAll, 80);
+        } else {
+          speakAll();
+        }
+      }catch(e){ resolve(); /* silencioso */ }
+    });
   }
 
   // Rellena el desplegable con las voces que ya tiene instaladas el propio
@@ -737,10 +743,13 @@
     // convertir multiplicadores de tono/velocidad (0.8-1.15) a porcentaje para Azure
     const toPct = (v)=> Math.round(((v || 1.0) - 1) * 100);
 
+    let tail = proAudioQueue;
     messages.forEach(item=>{
       const msg = (typeof item === 'string') ? {text: item} : item;
       proAudioQueue = proAudioQueue.then(()=> playProAudio(msg, toPct));
+      tail = proAudioQueue;
     });
+    return tail;
   }
 
   function playProAudio(msg, toPct){
@@ -949,6 +958,38 @@
       if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       if(audioCtx.state === 'suspended') audioCtx.resume();
       const now = audioCtx.currentTime;
+
+      if(kind === 'serveClock'){
+        // silbato deportivo real: tono sostenido con vibrato rápido (efecto "bolita"
+        // de los silbatos de árbitro), más largo y bastante más alto que los demás
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        const lfo = audioCtx.createOscillator();
+        const lfoGain = audioCtx.createGain();
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(2900, now);
+
+        lfo.frequency.setValueAtTime(24, now); // trino ~24 Hz
+        lfoGain.gain.setValueAtTime(140, now); // profundidad del vibrato en Hz
+        lfo.connect(lfoGain);
+        lfoGain.connect(osc.frequency);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(0.45, now + 0.03);
+        gain.gain.setValueAtTime(0.45, now + 0.45);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+        lfo.start(now);
+        osc.start(now);
+        lfo.stop(now + 0.6);
+        osc.stop(now + 0.6);
+        return;
+      }
+
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.type = 'square';
@@ -1039,8 +1080,8 @@
         say(String(secondsLeft));
       } else {
         clearServeCountdown();
-        whistle('serve');
-        buzz([80,40,80]);
+        whistle('serveClock');
+        buzz([200,100,200,100,300]);
       }
     }, 1000);
   }
@@ -1196,16 +1237,20 @@
     // punto de set / punto de partido: tono más grave y pausado, con gancho
     messages.push(...pointStakes(a, b, setEnds));
 
-    announce(messages);
+    const spoken = announce(messages);
     if(sideChanged) state.courtSwap = !state.courtSwap;
 
     const timeoutStarted = maybeStartTechnicalTimeout(a, b, setEnds);
     checkSetEnd();
 
-    if(!timeoutStarted && !state.matchOver){
-      startServeCountdown();
-    } else {
-      clearServeCountdown();
+    clearServeCountdown();
+    if(!timeoutStarted && !state.matchOver && crazyModeOn){
+      // espera a que termine de hablar el marcador (frase, cambio de campo, etc.)
+      // antes de arrancar la cuenta atrás, para no cortarla a mitad
+      Promise.resolve(spoken).then(()=>{
+        // por si en el tiempo que tardó en hablar ya se dio otro punto o cambió el estado
+        if(crazyModeOn && !state.matchOver) startServeCountdown();
+      });
     }
 
     render();
