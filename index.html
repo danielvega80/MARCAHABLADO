@@ -348,6 +348,147 @@
 
   .set-pill{ cursor:pointer; }
 
+  .chart-overlay{
+    position:fixed; inset:0;
+    background:rgba(8,30,35,0.75);
+    display:none;
+    align-items:center; justify-content:center;
+    z-index:110;
+    padding:16px;
+  }
+  .chart-overlay.show{ display:flex; }
+  .chart-card{
+    background:var(--sand-1);
+    border-radius:20px;
+    padding:20px;
+    max-width:640px;
+    width:100%;
+    max-height:88vh;
+    overflow-y:auto;
+    box-shadow:0 20px 50px rgba(0,0,0,0.35);
+  }
+  .chart-header{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:10px;
+  }
+  .chart-header h2{
+    font-family:var(--font-display);
+    font-size:20px;
+    margin:0;
+    color:var(--ink);
+  }
+  .chart-legend{
+    display:flex; gap:16px; justify-content:center;
+    font-family:var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.04em;
+    margin-bottom:10px;
+    color:var(--ink);
+  }
+  .chart-legend span{
+    display:inline-flex; align-items:center; gap:6px;
+  }
+  .chart-legend .swatch{
+    width:10px; height:10px; border-radius:50%;
+    display:inline-block;
+  }
+  .chart-tabs{
+    display:flex; justify-content:center; gap:6px; flex-wrap:wrap;
+    margin-bottom:12px;
+  }
+  .chart-tabs button{
+    border:none;
+    background:rgba(10,46,53,0.08);
+    color:var(--ink);
+    padding:6px 12px;
+    border-radius:999px;
+    font-family:var(--font-mono);
+    font-size:11px;
+    cursor:pointer;
+  }
+  .chart-tabs button.active{
+    background:var(--sea-1);
+    color:var(--sand-1);
+  }
+  .chart-svg-container{
+    width:100%;
+  }
+  .chart-svg-container svg{ width:100%; height:auto; display:block; }
+  .chart-empty{
+    text-align:center;
+    opacity:0.6;
+    font-family:var(--font-body);
+    padding:30px 0;
+  }
+  .chart-actions{
+    display:flex; justify-content:center; gap:8px; margin-top:10px;
+  }
+
+  .meta-row{
+    display:flex; align-items:center; justify-content:center; gap:14px;
+    padding:0 16px 4px;
+  }
+  .match-clock{
+    font-family:var(--font-mono);
+    font-size:13px;
+    letter-spacing:0.06em;
+    color:var(--sea-2);
+    opacity:0.85;
+  }
+  .history-btn{
+    border:none;
+    background:rgba(10,46,53,0.08);
+    color:var(--sea-2);
+    padding:4px 12px;
+    border-radius:999px;
+    font-family:var(--font-mono);
+    font-size:11px;
+    cursor:pointer;
+  }
+
+  .match-summary{
+    max-width:480px;
+    margin:0 auto;
+    padding:0 16px 8px;
+    text-align:center;
+    font-family:var(--font-mono);
+    font-size:12px;
+    line-height:1.6;
+    color:var(--sea-2);
+  }
+
+  .history-overlay{
+    position:fixed; inset:0;
+    background:rgba(8,30,35,0.75);
+    display:none;
+    align-items:center; justify-content:center;
+    z-index:110;
+    padding:16px;
+  }
+  .history-overlay.show{ display:flex; }
+  .history-card{
+    background:var(--sand-1);
+    border-radius:20px;
+    padding:20px;
+    max-width:480px;
+    width:100%;
+    max-height:80vh;
+    display:flex;
+    flex-direction:column;
+  }
+  .history-list{
+    overflow-y:auto;
+    font-family:var(--font-mono);
+    font-size:12px;
+    line-height:1.7;
+    color:var(--ink);
+    text-align:left;
+  }
+  .history-list .h-time{
+    opacity:0.55;
+    margin-right:8px;
+  }
+
   .timeout-overlay{
     position:fixed; inset:0;
     background:rgba(8,30,35,0.94);
@@ -444,6 +585,30 @@
   .settings-row.wrap{
     flex-wrap:wrap;
     gap:8px;
+  }
+
+  .color-row{
+    gap:20px;
+  }
+  .color-label{
+    display:flex !important;
+    flex-direction:row !important;
+    align-items:center;
+    gap:10px;
+    font-family:var(--font-body) !important;
+    font-size:14px !important;
+    text-transform:none !important;
+    letter-spacing:normal !important;
+    color:var(--ink) !important;
+  }
+  .color-label input[type="color"]{
+    width:44px;
+    height:32px;
+    padding:2px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    background:#fff;
+    cursor:pointer;
   }
 
   /* Modo Muerte Súbita: pulso rojo en los bordes de pantalla cuando el set
@@ -602,6 +767,23 @@
 
   <div class="settings-divider"></div>
 
+  <div class="settings-section-title">Colores de equipo</div>
+  <div class="settings-row color-row">
+    <label class="color-label">
+      <span id="colorLabelA">Equipo A</span>
+      <input type="color" id="colorPickerA" value="#0e6e83">
+    </label>
+    <label class="color-label">
+      <span id="colorLabelB">Equipo B</span>
+      <input type="color" id="colorPickerB" value="#ff6b4a">
+    </label>
+  </div>
+  <div class="settings-row">
+    <button class="util" id="resetColorsBtn">↺ Colores por defecto</button>
+  </div>
+
+  <div class="settings-divider"></div>
+
   <div class="settings-section-title">Voz (recomendado — no requiere configurar nada)</div>
   <label>
     Voz del dispositivo
@@ -631,8 +813,23 @@
   <button class="util" id="settingsClose">Cerrar</button>
 </div>
 
+<div class="meta-row">
+  <span class="match-clock" id="matchClock">⏱ 00:00</span>
+  <button class="history-btn" id="historyBtn">🕘 Historial</button>
+</div>
 <div class="sets-row" id="setsRow"></div>
 <div class="match-over" id="matchOver"></div>
+<div class="match-summary" id="matchSummary"></div>
+
+<div class="history-overlay" id="historyOverlay">
+  <div class="history-card">
+    <div class="chart-header">
+      <h2>Historial de eventos</h2>
+      <button class="util" id="historyClose">Cerrar</button>
+    </div>
+    <div class="history-list" id="historyList"></div>
+  </div>
+</div>
 
 <main id="mainBoard">
   <div class="team a">
@@ -665,6 +862,7 @@
 <footer>
   <button class="util" id="undoBtn">↺ Deshacer</button>
   <button class="util" id="newSetBtn">Nuevo set</button>
+  <button class="util" id="chartBtn">📈 Gráfico</button>
   <button class="util" id="shareBtn">📤 Compartir</button>
   <button class="util" id="exportBtn">⬇ Exportar</button>
   <button class="util" id="saveMatchBtn">🏐 Guardar y nuevo partido</button>
@@ -672,6 +870,21 @@
   <button class="util" id="resetBtn">Reiniciar partido</button>
 </footer>
 <div class="tournament-note" id="tournamentNote"></div>
+
+<div class="chart-overlay" id="chartOverlay">
+  <div class="chart-card">
+    <div class="chart-header">
+      <h2>Ritmo del partido</h2>
+      <button class="util" id="chartClose">Cerrar</button>
+    </div>
+    <div class="chart-legend" id="chartLegend"></div>
+    <div class="chart-tabs" id="chartTabs"></div>
+    <div class="chart-svg-container" id="chartSvgContainer"></div>
+    <div class="chart-actions">
+      <button class="util" id="chartExportBtn">🖼️ Exportar imagen</button>
+    </div>
+  </div>
+</div>
 
 <div class="announce-banner" id="banner"></div>
 
@@ -688,6 +901,29 @@
   // ---------- Estado ----------
   const WIN_BY = 2; // se gana un set con 2 puntos de diferencia, en ambas modalidades
   let matchFormat = 'playa'; // 'playa' | 'pista3' | 'pista5'
+  const DEFAULT_COLOR_A = '#0e6e83';
+  const DEFAULT_COLOR_B = '#ff6b4a';
+  let teamColorA = DEFAULT_COLOR_A;
+  let teamColorB = DEFAULT_COLOR_B;
+
+  let matchStartTime = null; // se fija en el primer punto del partido completo
+  let clockInterval = null;
+  let eventLog = []; // historial rápido de eventos (puntos, cambios, sets...)
+
+  function formatDuration(ms){
+    const totalSec = Math.floor(ms / 1000);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    const mm = String(m).padStart(2, '0');
+    const ss = String(s).padStart(2, '0');
+    return h > 0 ? (h + ':' + mm + ':' + ss) : (mm + ':' + ss);
+  }
+
+  function pushEvent(text){
+    eventLog.push({text, t: Date.now()});
+    if(eventLog.length > 60) eventLog.shift();
+  }
 
   function getSetsToWin(){
     return matchFormat === 'pista5' ? 3 : 2; // pista a 5 sets = al mejor de 5, resto = al mejor de 3
@@ -722,6 +958,24 @@
     splashStart: document.getElementById('splashStart'),
     matchFormatSelect: document.getElementById('matchFormatSelect'),
     rulesEyebrow: document.getElementById('rulesEyebrow'),
+    colorPickerA: document.getElementById('colorPickerA'),
+    colorPickerB: document.getElementById('colorPickerB'),
+    colorLabelA: document.getElementById('colorLabelA'),
+    colorLabelB: document.getElementById('colorLabelB'),
+    resetColorsBtn: document.getElementById('resetColorsBtn'),
+    chartBtn: document.getElementById('chartBtn'),
+    chartOverlay: document.getElementById('chartOverlay'),
+    chartClose: document.getElementById('chartClose'),
+    chartLegend: document.getElementById('chartLegend'),
+    chartTabs: document.getElementById('chartTabs'),
+    chartSvgContainer: document.getElementById('chartSvgContainer'),
+    chartExportBtn: document.getElementById('chartExportBtn'),
+    matchClock: document.getElementById('matchClock'),
+    historyBtn: document.getElementById('historyBtn'),
+    historyOverlay: document.getElementById('historyOverlay'),
+    historyClose: document.getElementById('historyClose'),
+    historyList: document.getElementById('historyList'),
+    matchSummary: document.getElementById('matchSummary'),
     mainBoard: document.getElementById('mainBoard'),
     scoreA: document.getElementById('scoreA'),
     scoreB: document.getElementById('scoreB'),
@@ -1297,6 +1551,7 @@
     whistle('timeout');
     buzz([200,100,200]);
     say('Tiempo técnico');
+    pushEvent('⏸️ Tiempo técnico');
     clearInterval(timeoutInterval);
     timeoutInterval = setInterval(()=>{
       count--;
@@ -1393,6 +1648,7 @@
     } else {
       els.matchOver.textContent = '';
     }
+    updateMatchSummary();
   }
 
   function pushHistory(){
@@ -1425,6 +1681,7 @@
       announce([{text: setText, pitch: 0.88, rate: 0.92}]);
       flashBanner('SET para ' + teamName(leader));
       buzz([120,80,120,80,250]);
+      pushEvent('🏐 Fin del set ' + finishedSetNum + ': ' + teamName(leader) + ' gana ' + a + '-' + b);
       state.score = {A:0, B:0};
       state.timeoutGiven = false;
       state.midSetChangeGiven = false;
@@ -1438,6 +1695,7 @@
 
       if(state.setsWon[leader] >= getSetsToWin()){
         state.matchOver = true;
+        pushEvent('🏆 Fin del partido: gana ' + teamName(leader) + ' (' + state.setsWon.A + '-' + state.setsWon.B + ')');
         const matchTemplates = [
           '¡' + teamName(leader) + ' gana el partido!',
           '¡Y el partido es para ' + teamName(leader) + '!',
@@ -1473,8 +1731,12 @@
 
     buzz(40);
 
+    // arranca el cronómetro del partido en el primer punto de todo el partido
+    if(!matchStartTime) matchStartTime = Date.now();
+
     // registro del punto para estadísticas (JSON exportado)
     state.pointsLog.push({team, a, b, set: state.setHistory.length + 1, t: Date.now()});
+    pushEvent(teamName(team) + ' anota. ' + teamName('A') + ' ' + a + ', ' + teamName('B') + ' ' + b);
 
     // racha: puntos seguidos del mismo equipo sin que el rival anote
     if(state.currentStreak.team === team){
@@ -1523,6 +1785,7 @@
         flashBanner('🔄 CAMBIO DE CAMPO');
         buzz([100,60,100]);
         sideChanged = true;
+        pushEvent('🔄 Cambio de campo (' + a + '-' + b + ')');
 
         if(!inCrazyMode && heatModeOn){
           const now = Date.now();
@@ -1555,6 +1818,7 @@
         flashBanner('🔄 CAMBIO DE CAMPO (set decisivo, 8 puntos)');
         buzz([100,60,100]);
         sideChanged = true;
+        pushEvent('🔄 Cambio de campo, set decisivo (' + a + '-' + b + ')');
       }
     }
 
@@ -1656,6 +1920,8 @@
     clearServeCountdown();
     document.body.classList.remove('sudden-death');
     lastCourtChangeTime = null;
+    matchStartTime = null;
+    eventLog = [];
     state = {
       score:{A:0,B:0}, setsWon:{A:0,B:0}, setHistory:[],
       serve:'A', matchOver:false, history:[],
@@ -1692,11 +1958,15 @@
     return {
       teamA: teamName('A'),
       teamB: teamName('B'),
+      matchFormat,
       setHistory: state.setHistory,
       currentSet: state.score,
       setsWon: state.setsWon,
       matchOver: state.matchOver,
       pointsLog: state.pointsLog,
+      eventLog: eventLog,
+      stats: computeMatchStats(),
+      matchStartedAt: matchStartTime ? new Date(matchStartTime).toISOString() : null,
       exportedAt: new Date().toISOString()
     };
   }
@@ -1717,6 +1987,201 @@
     downloadJSON(matchToObject(), 'partido-voley-playa-' + Date.now() + '.json');
   }
 
+  // ---------- Gráfico de ritmo de partido ----------
+  let chartActiveSet = 1;
+
+  function getAvailableSetNumbers(){
+    const nums = new Set(state.pointsLog.map(p => p.set));
+    return Array.from(nums).sort((a,b)=> a-b);
+  }
+
+  function renderChartSVG(setNumber){
+    const pts = state.pointsLog.filter(p => p.set === setNumber);
+    if(!pts.length){
+      els.chartSvgContainer.innerHTML = '<div class="chart-empty">Sin puntos registrados en este set</div>';
+      return;
+    }
+
+    const series = [{x:0, y:0, team:null}];
+    pts.forEach((p, i)=> series.push({x:i+1, y:p.a-p.b, team:p.team}));
+
+    const maxAbsY = Math.max(1, ...series.map(p=>Math.abs(p.y)));
+    const maxX = series.length - 1;
+    const W = 600, H = 220, padX = 24, padY = 20;
+    const plotW = W - padX*2, plotH = H - padY*2;
+    const midY = H/2;
+
+    const sx = (x)=> padX + (maxX ? (x/maxX)*plotW : 0);
+    const sy = (y)=> midY - (y/maxAbsY) * (plotH/2);
+
+    const linePoints = series.map(p=> sx(p.x).toFixed(1) + ',' + sy(p.y).toFixed(1)).join(' ');
+    const dots = series.slice(1).map(p=>{
+      const color = p.team === 'A' ? teamColorA : teamColorB;
+      return '<circle cx="' + sx(p.x).toFixed(1) + '" cy="' + sy(p.y).toFixed(1) + '" r="3.5" fill="' + color + '"></circle>';
+    }).join('');
+
+    const svg = ''
+      + '<svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg">'
+      + '<line x1="' + padX + '" y1="' + midY + '" x2="' + (W-padX) + '" y2="' + midY + '" stroke="#0a2e35" stroke-opacity="0.25" stroke-dasharray="4 4"/>'
+      + '<polyline points="' + linePoints + '" fill="none" stroke="#0a2e35" stroke-opacity="0.55" stroke-width="2"/>'
+      + dots
+      + '</svg>';
+
+    els.chartSvgContainer.innerHTML = svg;
+  }
+
+  function renderChartLegend(){
+    els.chartLegend.innerHTML =
+      '<span><span class="swatch" style="background:' + teamColorA + '"></span>' + teamName('A') + ' arriba</span>' +
+      '<span><span class="swatch" style="background:' + teamColorB + '"></span>' + teamName('B') + ' arriba</span>';
+  }
+
+  function renderChartTabs(){
+    const nums = getAvailableSetNumbers();
+    if(!nums.includes(chartActiveSet)) chartActiveSet = nums[nums.length-1] || 1;
+    els.chartTabs.innerHTML = '';
+    nums.forEach(n=>{
+      const btn = document.createElement('button');
+      btn.textContent = 'Set ' + n;
+      btn.className = n === chartActiveSet ? 'active' : '';
+      btn.addEventListener('click', ()=>{
+        chartActiveSet = n;
+        renderChartTabs();
+        renderChartSVG(chartActiveSet);
+      });
+      els.chartTabs.appendChild(btn);
+    });
+  }
+
+  function openChart(){
+    if(!state.pointsLog.length){
+      flashBanner('Todavía no hay puntos registrados en este partido');
+      return;
+    }
+    renderChartLegend();
+    renderChartTabs();
+    renderChartSVG(chartActiveSet);
+    els.chartOverlay.classList.add('show');
+  }
+
+  els.chartBtn.addEventListener('click', openChart);
+  els.chartClose.addEventListener('click', ()=> els.chartOverlay.classList.remove('show'));
+
+  // exportar el gráfico visible como imagen PNG (para compartir por WhatsApp, etc.)
+  els.chartExportBtn.addEventListener('click', ()=>{
+    const svgEl = els.chartSvgContainer.querySelector('svg');
+    if(!svgEl){
+      flashBanner('No hay gráfico que exportar');
+      return;
+    }
+    const svgString = new XMLSerializer().serializeToString(svgEl);
+    const svgBlob = new Blob([svgString], {type: 'image/svg+xml;charset=utf-8'});
+    const url = URL.createObjectURL(svgBlob);
+    const img = new Image();
+    img.onload = ()=>{
+      const scale = 2; // más resolución para que se vea bien al compartir
+      const canvas = document.createElement('canvas');
+      canvas.width = 600 * scale;
+      canvas.height = 220 * scale;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#f6e9cf';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      canvas.toBlob((blob)=>{
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'grafico-set-' + chartActiveSet + '-' + Date.now() + '.png';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }, 'image/png');
+    };
+    img.onerror = ()=>{
+      URL.revokeObjectURL(url);
+      flashBanner('No se pudo generar la imagen');
+    };
+    img.src = url;
+  });
+
+  // ---------- Cronómetro de partido ----------
+  function updateClockDisplay(){
+    if(!matchStartTime){
+      els.matchClock.textContent = '⏱ 00:00';
+      return;
+    }
+    els.matchClock.textContent = '⏱ ' + formatDuration(Date.now() - matchStartTime);
+  }
+  clockInterval = setInterval(updateClockDisplay, 1000);
+  updateClockDisplay();
+
+  // ---------- Resumen estadístico al terminar el partido ----------
+  function computeMatchStats(){
+    const log = state.pointsLog;
+    if(log.length < 2) return null;
+
+    // mayor racha de cada equipo, a lo largo de todo el partido
+    let maxStreak = {A: 0, B: 0};
+    let curTeam = null, curCount = 0;
+    log.forEach(p=>{
+      if(p.team === curTeam){ curCount++; } else { curTeam = p.team; curCount = 1; }
+      if(curCount > maxStreak[curTeam]) maxStreak[curTeam] = curCount;
+    });
+
+    // mayor pausa entre dos puntos consecutivos (el "punto más reñido")
+    let maxGap = 0, maxGapScore = '';
+    let totalGap = 0;
+    for(let i = 1; i < log.length; i++){
+      const gap = log[i].t - log[i-1].t;
+      totalGap += gap;
+      if(gap > maxGap){
+        maxGap = gap;
+        maxGapScore = log[i].a + '-' + log[i].b;
+      }
+    }
+    const avgGap = totalGap / (log.length - 1);
+
+    return {
+      maxStreakA: maxStreak.A,
+      maxStreakB: maxStreak.B,
+      maxGap, maxGapScore,
+      avgGap,
+      totalDuration: matchStartTime ? (Date.now() - matchStartTime) : totalGap
+    };
+  }
+
+  function updateMatchSummary(){
+    if(!state.matchOver){
+      els.matchSummary.innerHTML = '';
+      return;
+    }
+    const stats = computeMatchStats();
+    if(!stats){ els.matchSummary.innerHTML = ''; return; }
+    els.matchSummary.innerHTML =
+      '🔥 Mayor racha: ' + teamName('A') + ' ' + stats.maxStreakA + ' · ' + teamName('B') + ' ' + stats.maxStreakB + '<br>' +
+      '⏳ Punto más reñido: ' + formatDuration(stats.maxGap) + ' (marcador ' + stats.maxGapScore + ')<br>' +
+      '⌀ Tiempo medio entre puntos: ' + formatDuration(Math.round(stats.avgGap)) + ' · Duración total: ' + formatDuration(stats.totalDuration);
+  }
+
+  // ---------- Historial rápido de eventos ----------
+  function renderHistoryList(){
+    if(!eventLog.length){
+      els.historyList.innerHTML = '<div style="opacity:0.6; text-align:center; padding:20px 0;">Todavía no hay eventos</div>';
+      return;
+    }
+    const startTime = matchStartTime || (eventLog[0] && eventLog[0].t);
+    els.historyList.innerHTML = eventLog.slice().reverse().map(ev=>{
+      const rel = startTime ? formatDuration(ev.t - startTime) : '';
+      return '<div><span class="h-time">' + rel + '</span>' + ev.text + '</div>';
+    }).join('');
+  }
+
+  els.historyBtn.addEventListener('click', ()=>{
+    renderHistoryList();
+    els.historyOverlay.classList.add('show');
+  });
+  els.historyClose.addEventListener('click', ()=> els.historyOverlay.classList.remove('show'));
+
   // ---------- Modo torneo: varios partidos en la misma sesión ----------
   function updateTournamentNote(){
     if(tournamentMatches.length === 0){
@@ -1735,10 +2200,16 @@
     tournamentMatches.push(matchToObject());
     updateTournamentNote();
     flashBanner('✅ Partido guardado (' + tournamentMatches.length + ' en total)');
+    clearServeCountdown();
+    document.body.classList.remove('sudden-death');
+    lastCourtChangeTime = null;
+    matchStartTime = null;
+    eventLog = [];
     state = {
       score:{A:0,B:0}, setsWon:{A:0,B:0}, setHistory:[],
       serve:'A', matchOver:false, history:[],
-      timeoutGiven:false, courtSwap:false, pointsLog:[]
+      timeoutGiven:false, midSetChangeGiven:false, courtSwap:false, pointsLog:[],
+      currentStreak:{team:null, count:0}
     };
     render();
   }
@@ -1779,6 +2250,16 @@
     highContrastOn = !highContrastOn;
     document.body.classList.toggle('high-contrast', highContrastOn);
     els.contrastToggle.classList.toggle('active', highContrastOn);
+    if(highContrastOn){
+      // el alto contraste tiene su propia paleta fija; quitamos el color
+      // en línea para que no la tape (el inline style siempre gana al CSS)
+      const teamA = document.querySelector('.team.a');
+      const teamB = document.querySelector('.team.b');
+      if(teamA) teamA.style.background = '';
+      if(teamB) teamB.style.background = '';
+    } else {
+      applyTeamColors();
+    }
   });
 
   const serveCountdownLabels = {
@@ -1961,6 +2442,49 @@
     flashBanner('Modalidad: ' + formatLabels[matchFormat]);
   });
 
+  // ---------- Colores de equipo ----------
+  function darkenColor(hex, factor){
+    const n = hex.replace('#', '');
+    const r = Math.round(parseInt(n.substring(0,2), 16) * factor);
+    const g = Math.round(parseInt(n.substring(2,4), 16) * factor);
+    const b = Math.round(parseInt(n.substring(4,6), 16) * factor);
+    const toHex = (v)=> Math.max(0, Math.min(255, v)).toString(16).padStart(2, '0');
+    return '#' + toHex(r) + toHex(g) + toHex(b);
+  }
+
+  function applyTeamColors(){
+    const teamA = document.querySelector('.team.a');
+    const teamB = document.querySelector('.team.b');
+    if(teamA) teamA.style.background = 'linear-gradient(160deg, ' + teamColorA + ', ' + darkenColor(teamColorA, 0.62) + ')';
+    if(teamB) teamB.style.background = 'linear-gradient(160deg, ' + teamColorB + ', ' + darkenColor(teamColorB, 0.62) + ')';
+  }
+
+  function updateColorLabels(){
+    els.colorLabelA.textContent = teamName('A');
+    els.colorLabelB.textContent = teamName('B');
+  }
+
+  els.colorPickerA.addEventListener('input', ()=>{
+    teamColorA = els.colorPickerA.value;
+    applyTeamColors();
+  });
+  els.colorPickerB.addEventListener('input', ()=>{
+    teamColorB = els.colorPickerB.value;
+    applyTeamColors();
+  });
+  els.resetColorsBtn.addEventListener('click', ()=>{
+    teamColorA = DEFAULT_COLOR_A;
+    teamColorB = DEFAULT_COLOR_B;
+    els.colorPickerA.value = DEFAULT_COLOR_A;
+    els.colorPickerB.value = DEFAULT_COLOR_B;
+    applyTeamColors();
+    flashBanner('Colores por defecto restaurados');
+  });
+  els.nameA.addEventListener('input', updateColorLabels);
+  els.nameB.addEventListener('input', updateColorLabels);
+  updateColorLabels();
+  applyTeamColors();
+
   els.settingsToggle.addEventListener('click', ()=>{
     els.settingsPanel.classList.toggle('show');
   });
@@ -2007,6 +2531,19 @@
       navigator.serviceWorker.register('sw.js').catch(()=>{ /* silencioso */ });
     });
   }
+
+  // Aviso antes de cerrar/recargar si hay un partido en marcha sin guardar/exportar,
+  // para no perderlo por un toque accidental (volver atrás, cerrar pestaña, etc.)
+  window.addEventListener('beforeunload', (e)=>{
+    const hasUnsavedMatch = !state.matchOver && (
+      state.score.A > 0 || state.score.B > 0 || state.setHistory.length > 0
+    );
+    if(hasUnsavedMatch){
+      e.preventDefault();
+      e.returnValue = '';
+      return '';
+    }
+  });
 
   render();
 })();
