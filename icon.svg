@@ -7,10 +7,20 @@
     </linearGradient>
   </defs>
   <rect width="512" height="512" rx="96" fill="url(#bg)"/>
-  <circle cx="256" cy="248" r="150" fill="#fff6ee" stroke="#0a2e35" stroke-width="10"/>
-  <path d="M256 98 C 300 150, 300 346, 256 398" fill="none" stroke="#0e6e83" stroke-width="14"/>
-  <path d="M256 98 C 212 150, 212 346, 256 398" fill="none" stroke="#ff6b4a" stroke-width="14"/>
-  <path d="M110 200 C 180 230, 332 230, 402 200" fill="none" stroke="#0e6e83" stroke-width="14"/>
-  <path d="M110 296 C 180 266, 332 266, 402 296" fill="none" stroke="#ff6b4a" stroke-width="14"/>
-  <rect x="60" y="420" width="392" height="18" rx="9" fill="#0a4f60"/>
+
+  <!-- ondas de sonido, a la izquierda -->
+  <path d="M120 210 A 60 60 0 0 0 120 302" fill="none" stroke="#0e6e83" stroke-width="14" stroke-linecap="round"/>
+  <path d="M96 190 A 92 92 0 0 0 96 322" fill="none" stroke="#0e6e83" stroke-width="14" stroke-linecap="round" opacity="0.55"/>
+
+  <!-- pelota de voley playa -->
+  <circle cx="290" cy="256" r="118" fill="#fff6ee" stroke="#0a2e35" stroke-width="10"/>
+  <path d="M290 138 C 328 182, 328 330, 290 374" fill="none" stroke="#0e6e83" stroke-width="12"/>
+  <path d="M290 138 C 252 182, 252 330, 290 374" fill="none" stroke="#ff6b4a" stroke-width="12"/>
+  <path d="M176 220 C 232 244, 348 244, 404 220" fill="none" stroke="#0e6e83" stroke-width="12"/>
+  <path d="M176 292 C 232 268, 348 268, 404 292" fill="none" stroke="#ff6b4a" stroke-width="12"/>
+
+  <!-- ondas de sonido, a la derecha -->
+  <path d="M424 210 A 60 60 0 0 1 424 302" fill="none" stroke="#ff6b4a" stroke-width="14" stroke-linecap="round"/>
+
+  <rect x="60" y="430" width="392" height="16" rx="8" fill="#0a4f60" opacity="0.85"/>
 </svg>

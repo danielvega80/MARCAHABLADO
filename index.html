@@ -10,7 +10,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon.svg">
-<title>Marcador Vóley Playa</title>
+<title>Marcador Cantado</title>
 <style>
   :root{
     --sand-1:#f6e9cf;
@@ -45,6 +45,72 @@
       radial-gradient(circle at 10px -4px, transparent 10px, var(--sea-1) 11px) 0 0/24px 100% repeat-x;
     opacity:0.85;
   }
+
+  .splash-screen{
+    position:fixed;
+    inset:0;
+    z-index:200;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:
+      radial-gradient(circle at 20% -10%, rgba(255,255,255,0.5), transparent 45%),
+      linear-gradient(180deg, var(--sand-1) 0%, var(--sand-2) 55%, var(--sea-2) 140%);
+    transition: opacity 0.35s ease, visibility 0.35s ease;
+  }
+  .splash-screen.hide{
+    opacity:0;
+    visibility:hidden;
+    pointer-events:none;
+  }
+  .splash-card{
+    text-align:center;
+    padding:32px 28px;
+    max-width:340px;
+  }
+  .splash-logo{
+    width:120px;
+    height:120px;
+    border-radius:28px;
+    box-shadow:0 12px 30px rgba(10,46,53,0.25);
+    margin-bottom:18px;
+  }
+  .splash-title{
+    font-family:var(--font-display);
+    font-size:34px;
+    color:var(--ink);
+    margin:0 0 6px;
+    letter-spacing:0.01em;
+  }
+  .splash-tagline{
+    font-family:var(--font-mono);
+    font-size:13px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--sea-2);
+    margin:0 0 22px;
+    opacity:0.85;
+  }
+  .splash-credit{
+    font-family:var(--font-body);
+    font-size:14px;
+    color:var(--ink);
+    opacity:0.75;
+    margin:0 0 26px;
+  }
+  .splash-start{
+    border:none;
+    background:linear-gradient(160deg, var(--sea-1), var(--sea-2));
+    color:var(--sand-1);
+    font-family:var(--font-body);
+    font-weight:700;
+    font-size:16px;
+    padding:14px 32px;
+    border-radius:999px;
+    cursor:pointer;
+    box-shadow:0 8px 20px rgba(14,110,131,0.35);
+  }
+  .splash-start:active{ transform:scale(0.97); }
   header{
     padding:14px 16px 8px;
     display:flex; align-items:center; justify-content:space-between;
@@ -92,7 +158,7 @@
   button.chip:active{ transform:scale(0.96); }
 
   .sets-row{
-    display:flex; justify-content:center; gap:6px;
+    display:flex; justify-content:center; gap:6px; flex-wrap:wrap;
     padding:2px 16px 6px;
   }
   .set-pill{
@@ -375,6 +441,43 @@
   .settings-row{
     display:flex;
   }
+  .settings-row.wrap{
+    flex-wrap:wrap;
+    gap:8px;
+  }
+
+  /* Modo Muerte Súbita: pulso rojo en los bordes de pantalla cuando el set
+     está a un punto de cerrarse */
+  @keyframes suddenDeathPulse{
+    0%, 100% { box-shadow: inset 0 0 0px rgba(255,40,40,0); }
+    50% { box-shadow: inset 0 0 60px rgba(255,40,40,0.55); }
+  }
+  body.sudden-death::after{
+    content:'';
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    z-index:40;
+    animation: suddenDeathPulse 1s ease-in-out infinite;
+  }
+
+  /* Modo Fiesta: confeti */
+  .confetti-piece{
+    position:fixed;
+    top:-20px;
+    width:9px;
+    height:14px;
+    opacity:0.95;
+    pointer-events:none;
+    z-index:60;
+    animation-name: confettiFall;
+    animation-timing-function: cubic-bezier(0.4,0,0.6,1);
+    animation-fill-mode: forwards;
+  }
+  @keyframes confettiFall{
+    0% { transform: translateY(0) rotate(0deg); opacity:1; }
+    100% { transform: translateY(105vh) rotate(540deg); opacity:0.4; }
+  }
 
   .tournament-note{
     text-align:center;
@@ -455,12 +558,22 @@
 </head>
 <body>
 
+<div class="splash-screen" id="splashScreen">
+  <div class="splash-card">
+    <img src="icon.svg" alt="" class="splash-logo" onerror="this.style.display='none'">
+    <h1 class="splash-title">Marcador Cantado</h1>
+    <p class="splash-tagline">Voz para tu partido</p>
+    <p class="splash-credit">Dani Vega · CV Cangas de Onís</p>
+    <button class="splash-start" id="splashStart">Empezar ▶</button>
+  </div>
+</div>
+
 <div class="wave-strip"></div>
 
 <header>
   <div class="brand">
-    <span class="eyebrow">Vóley Playa · Set a 21 · diferencia de 2</span>
-    <h1>Marcador</h1>
+    <span class="eyebrow" id="rulesEyebrow">Vóley Playa · Set a 21 · diferencia de 2</span>
+    <h1>Marcador Cantado</h1>
   </div>
   <div class="controls-top">
     <button class="chip active" id="voiceModeToggle">🔔 Voz: Avisos</button>
@@ -468,12 +581,27 @@
     <button class="chip" id="wakeToggle">☀️ Pantalla</button>
     <button class="chip" id="contrastToggle">🌞 Alto contraste</button>
     <button class="chip" id="fullscreenToggle">⛶ Completa</button>
-    <button class="chip" id="crazyModeToggle">🔥 Modo Locura</button>
+    <button class="chip" id="serveCountdownToggle">⏱️ Cuenta saque: Off</button>
     <button class="chip" id="settingsToggle">⚙️ Voz y ajustes</button>
   </div>
 </header>
 
 <div class="settings-panel" id="settingsPanel">
+  <div class="settings-section-title">Modalidad</div>
+  <label>
+    Tipo de partido
+    <select id="matchFormatSelect">
+      <option value="playa">🏖️ Vóley Playa — set a 21, diferencia de 2</option>
+      <option value="pista3">🏐 Vóley Pista — al mejor de 3, sets a 25</option>
+      <option value="pista5">🏐 Vóley Pista — al mejor de 5, sets a 25</option>
+    </select>
+  </label>
+  <div class="settings-note">
+    En pista, el cambio de campo solo ocurre entre sets, salvo en el set decisivo, donde se cambia una vez cuando el primer equipo llega a 8 puntos. Cambiar de modalidad reinicia el partido.
+  </div>
+
+  <div class="settings-divider"></div>
+
   <div class="settings-section-title">Voz (recomendado — no requiere configurar nada)</div>
   <label>
     Voz del dispositivo
@@ -488,23 +616,17 @@
 
   <div class="settings-divider"></div>
 
-  <div class="settings-section-title">Voz Pro (opcional, avanzado)</div>
-  <button class="chip" id="proVoiceToggle">🎙️ Activar Voz Pro</button>
-  <label>
-    URL del Worker (Voz Pro)
-    <input type="text" id="workerUrlInput" placeholder="https://voz-pro.tuusuario.workers.dev">
-  </label>
-  <label>
-    Voz de Azure
-    <select id="azureVoiceSelect">
-      <option value="es-ES-XimenaNeural">Ximena (ES, femenina, cálida)</option>
-      <option value="es-ES-AlvaroNeural">Álvaro (ES, masculina, neutra)</option>
-      <option value="es-ES-ArnauNeural">Arnau (ES, masculina, enérgica)</option>
-      <option value="es-MX-DaliaNeural">Dalia (MX, femenina)</option>
-      <option value="es-MX-JorgeNeural">Jorge (MX, masculina)</option>
-    </select>
-  </label>
-  <div class="settings-note" id="proVoiceStatus">Voz Pro desactivada — usando la voz del dispositivo.</div>
+  <div class="settings-section-title">Modos especiales</div>
+  <div class="settings-row wrap">
+    <button class="chip" id="partyModeToggle">🎉 Fiesta</button>
+    <button class="chip" id="suddenDeathToggle">⏱️ Muerte Súbita</button>
+    <button class="chip" id="heatModeToggle">🌡️ Calor Extremo</button>
+    <button class="chip" id="silentPhysicalToggle">🤫 Silencioso+</button>
+    <button class="chip" id="speakerModeToggle">📢 Speaker de Torneo</button>
+  </div>
+  <div class="settings-note">
+    Fiesta: confeti y sonido al ganar set. Muerte Súbita: aviso visual cuando el set está a un punto de cerrarse. Calor Extremo: recuerda hidratarse si el set se alarga mucho. Silencioso+: sin voz pero con silbatos y vibración. Speaker: frases más exageradas, tipo presentador.
+  </div>
 
   <button class="util" id="settingsClose">Cerrar</button>
 </div>
@@ -564,10 +686,22 @@
 <script>
 (function(){
   // ---------- Estado ----------
-  const SET_POINTS = 21;
-  const TIEBREAK_POINTS = 15; // tercer set decisivo
-  const WIN_BY = 2;
-  const SETS_TO_WIN = 2; // al mejor de 3
+  const WIN_BY = 2; // se gana un set con 2 puntos de diferencia, en ambas modalidades
+  let matchFormat = 'playa'; // 'playa' | 'pista3' | 'pista5'
+
+  function getSetsToWin(){
+    return matchFormat === 'pista5' ? 3 : 2; // pista a 5 sets = al mejor de 5, resto = al mejor de 3
+  }
+  function getDecidingSetIndex(){
+    // índice (0-based) del último set posible: 2 para mejor-de-3, 4 para mejor-de-5
+    return getSetsToWin() * 2 - 2;
+  }
+  function getRegularSetPoints(){
+    return matchFormat === 'playa' ? 21 : 25;
+  }
+  function getDecidingSetPoints(){
+    return 15; // igual en playa y en pista
+  }
 
   let state = {
     score: {A:0, B:0},
@@ -577,12 +711,17 @@
     matchOver: false,
     history: [], // pila para deshacer: {score, serve}
     timeoutGiven: false, // tiempo técnico ya dado en el set actual
+    midSetChangeGiven: false, // cambio de campo del set decisivo (pista) ya dado
     courtSwap: false, // false = A izquierda / B derecha; true = al revés
     pointsLog: [], // [{team, a, b, set, t}, ...] para estadísticas/ritmo de juego
     currentStreak: {team: null, count: 0} // puntos seguidos sin que anote el rival
   };
 
   const els = {
+    splashScreen: document.getElementById('splashScreen'),
+    splashStart: document.getElementById('splashStart'),
+    matchFormatSelect: document.getElementById('matchFormatSelect'),
+    rulesEyebrow: document.getElementById('rulesEyebrow'),
     mainBoard: document.getElementById('mainBoard'),
     scoreA: document.getElementById('scoreA'),
     scoreB: document.getElementById('scoreB'),
@@ -605,16 +744,17 @@
     timeoutOverlay: document.getElementById('timeoutOverlay'),
     timeoutCount: document.getElementById('timeoutCount'),
     timeoutSkip: document.getElementById('timeoutSkip'),
-    proVoiceToggle: document.getElementById('proVoiceToggle'),
     settingsToggle: document.getElementById('settingsToggle'),
     settingsPanel: document.getElementById('settingsPanel'),
     settingsClose: document.getElementById('settingsClose'),
-    workerUrlInput: document.getElementById('workerUrlInput'),
-    azureVoiceSelect: document.getElementById('azureVoiceSelect'),
-    proVoiceStatus: document.getElementById('proVoiceStatus'),
     contrastToggle: document.getElementById('contrastToggle'),
     fullscreenToggle: document.getElementById('fullscreenToggle'),
-    crazyModeToggle: document.getElementById('crazyModeToggle'),
+    serveCountdownToggle: document.getElementById('serveCountdownToggle'),
+    partyModeToggle: document.getElementById('partyModeToggle'),
+    suddenDeathToggle: document.getElementById('suddenDeathToggle'),
+    heatModeToggle: document.getElementById('heatModeToggle'),
+    silentPhysicalToggle: document.getElementById('silentPhysicalToggle'),
+    speakerModeToggle: document.getElementById('speakerModeToggle'),
     saveMatchBtn: document.getElementById('saveMatchBtn'),
     exportTournamentBtn: document.getElementById('exportTournamentBtn'),
     tournamentNote: document.getElementById('tournamentNote')
@@ -629,21 +769,22 @@
   let timeoutInterval = null;
   let highContrastOn = false;
   let tournamentMatches = []; // partidos guardados en esta sesión (modo torneo)
-  let audioCtx = null; // para el silbato
-  let crazyModeOn = false; // "Modo Locura": cuenta atrás de saque de 8s con silbato
+  let audioCtx = null; // para los silbatos cortos (cambio de campo, tiempo técnico, saque)
+  let crazyWhistleAudioEl = null; // silbato del Modo Locura, como archivo de audio real (más fiable que Web Audio en iOS tras varios segundos de espera)
+  let serveCountdownMode = 'off'; // 'off' | 'locura' | 'entreno'
+  let partyModeOn = false;
+  let suddenDeathModeOn = false;
+  let heatModeOn = false;
+  let silentPhysicalModeOn = false;
+  let speakerModeOn = false;
+  let lastCourtChangeTime = null; // para el Modo Calor Extremo
+  let voiceModeBeforeSilent = 'announcements'; // para poder restaurar al salir de Silencioso+
   let serveCountdownInterval = null;
 
-  // ---------- Voz Pro (Azure TTS vía Worker propio) ----------
-  let proVoiceOn = false;
-  let workerUrl = '';
-  let azureVoice = 'es-ES-XimenaNeural';
-  let proAudioQueue = Promise.resolve(); // encadena los audios para que no se pisen
-  let proVoiceFailedOnce = false; // si falla, avisamos una vez y no insistimos cada punto
-
   function currentSetTarget(){
-    // tercer set (índice 2, 0-based) es el decisivo a 15
+    // el set decisivo (según la modalidad: 3er set en mejor-de-3, 5º en mejor-de-5) se juega a 15
     const setIndex = state.setHistory.length;
-    return setIndex === 2 ? TIEBREAK_POINTS : SET_POINTS;
+    return setIndex === getDecidingSetIndex() ? getDecidingSetPoints() : getRegularSetPoints();
   }
 
   function teamName(t){
@@ -666,9 +807,6 @@
     if(voiceMode === 'off') return Promise.resolve();
     if(!messages || !messages.length) return Promise.resolve();
 
-    if(proVoiceOn && workerUrl){
-      return announcePro(messages);
-    }
     return announceBrowser(messages);
   }
 
@@ -736,60 +874,13 @@
     });
   }
 
-  // Voz Pro: pide el audio a Azure TTS (vía tu Worker) y lo reproduce.
-  // Si falla (sin internet, Worker caído, URL mal puesta...) cae automáticamente
-  // a la voz del navegador para esa misma frase, sin cortar el marcador.
-  function announcePro(messages){
-    // convertir multiplicadores de tono/velocidad (0.8-1.15) a porcentaje para Azure
-    const toPct = (v)=> Math.round(((v || 1.0) - 1) * 100);
-
-    let tail = proAudioQueue;
-    messages.forEach(item=>{
-      const msg = (typeof item === 'string') ? {text: item} : item;
-      proAudioQueue = proAudioQueue.then(()=> playProAudio(msg, toPct));
-      tail = proAudioQueue;
-    });
-    return tail;
-  }
-
-  function playProAudio(msg, toPct){
-    return fetch(workerUrl, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        text: msg.text,
-        voice: azureVoice,
-        rate: toPct(msg.rate),
-        pitch: toPct(msg.pitch)
-      })
-    })
-    .then(resp=>{
-      if(!resp.ok) throw new Error('worker_error_' + resp.status);
-      return resp.blob();
-    })
-    .then(blob=> new Promise((resolve)=>{
-      const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
-      audio.volume = 1.0;
-      audio.onended = ()=>{ URL.revokeObjectURL(url); resolve(); };
-      audio.onerror = ()=>{ URL.revokeObjectURL(url); resolve(); };
-      audio.play().catch(()=> resolve());
-    }))
-    .catch(()=>{
-      // fallback silencioso a la voz del navegador, solo avisamos una vez
-      if(!proVoiceFailedOnce){
-        proVoiceFailedOnce = true;
-        flashBanner('⚠️ Voz Pro no responde, usando voz normal');
-      }
-      announceBrowser([msg]);
-    });
-  }
-
-  // Cambio de campo cada 7 puntos (suma de ambos) en sets 1 y 2,
-  // y cada 5 puntos en el set decisivo (tercero) — regla oficial de vóley playa.
+  // Cambio de campo repetitivo cada 7 puntos (suma de ambos) en sets normales
+  // y cada 5 en el decisivo — esto SOLO aplica a vóley playa. En pista el
+  // cambio de campo se gestiona aparte (una sola vez, a los 8 puntos del
+  // set decisivo; en el resto de sets no hay cambio a mitad de set).
   function changeInterval(){
     const setIndex = state.setHistory.length;
-    return setIndex === 2 ? 5 : 7;
+    return setIndex === getDecidingSetIndex() ? 5 : 7;
   }
 
   function isSetEndingScore(a, b){
@@ -926,7 +1017,7 @@
       const na = t === 'A' ? a + 1 : a;
       const nb = t === 'B' ? b + 1 : b;
       if(isSetEndingScore(na, nb)){
-        const wouldWinMatch = (state.setsWon[t] + 1) >= SETS_TO_WIN;
+        const wouldWinMatch = (state.setsWon[t] + 1) >= getSetsToWin();
         const labelPool = wouldWinMatch ? [
           'Punto de partido para ' + teamName(t),
           teamName(t) + ' puede cerrar el partido',
@@ -953,81 +1044,243 @@
 
   // Silbato corto sintetizado (sin archivos externos) para que el aviso de
   // cambio de campo / tiempo técnico se note aunque haya viento o ruido de público.
-  function whistle(kind){
+  // Genera el silbato del Modo Locura como un WAV real (no Web Audio en vivo).
+  // Esto es más fiable en iOS: el audio se calcula una sola vez y se reproduce
+  // con un <audio> normal, que no depende de que el AudioContext siga "despierto"
+  // varios segundos después del último toque en pantalla.
+  function synthesizeWhistleDataUrl(){
+    const sampleRate = 22050;
+    const duration = 0.6;
+    const totalSamples = Math.floor(sampleRate * duration);
+    const baseFreq = 2900;
+    const vibratoRate = 24;
+    const vibratoDepth = 140;
+    const attackEnd = 0.03;
+    const sustainEnd = 0.45;
+    const peak = 0.9;
+
+    const samples = new Int16Array(totalSamples);
+    let phase = 0;
+    for(let i = 0; i < totalSamples; i++){
+      const t = i / sampleRate;
+      const instFreq = baseFreq + vibratoDepth * Math.sin(2 * Math.PI * vibratoRate * t);
+      phase += instFreq / sampleRate;
+      phase -= Math.floor(phase);
+      const saw = 2 * phase - 1; // onda diente de sierra, brillante como un silbato real
+
+      let env;
+      if(t < attackEnd){
+        env = t / attackEnd;
+      } else if(t < sustainEnd){
+        env = 1;
+      } else {
+        env = Math.max(0, 1 - (t - sustainEnd) / (duration - sustainEnd));
+      }
+
+      const sample = saw * env * peak;
+      samples[i] = Math.max(-32768, Math.min(32767, Math.round(sample * 32767)));
+    }
+
+    // empaqueta como WAV de 16 bits mono
+    const dataSize = samples.length * 2;
+    const buffer = new ArrayBuffer(44 + dataSize);
+    const view = new DataView(buffer);
+    const writeString = (offset, str)=>{
+      for(let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+    };
+    writeString(0, 'RIFF');
+    view.setUint32(4, 36 + dataSize, true);
+    writeString(8, 'WAVE');
+    writeString(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    writeString(36, 'data');
+    view.setUint32(40, dataSize, true);
+    let offset = 44;
+    for(let i = 0; i < samples.length; i++){
+      view.setInt16(offset, samples[i], true);
+      offset += 2;
+    }
+
+    const blob = new Blob([view], {type: 'audio/wav'});
+    return URL.createObjectURL(blob);
+  }
+
+  function ensureCrazyWhistleAudio(){
+    if(crazyWhistleAudioEl) return crazyWhistleAudioEl;
+    try{
+      crazyWhistleAudioEl = new Audio(synthesizeWhistleDataUrl());
+      crazyWhistleAudioEl.preload = 'auto';
+      crazyWhistleAudioEl.volume = 1.0;
+    }catch(e){ crazyWhistleAudioEl = null; }
+    return crazyWhistleAudioEl;
+  }
+
+  // "Desbloquea" el audio del silbato reproduciéndolo silenciado una vez,
+  // durante un toque real del usuario (activar Modo Locura, o el primer touchstart).
+  function unlockCrazyWhistleAudio(){
+    const el = ensureCrazyWhistleAudio();
+    if(!el) return;
+    const prevVolume = el.volume;
+    el.volume = 0;
+    const p = el.play();
+    if(p && p.then){
+      p.then(()=>{ el.pause(); el.currentTime = 0; el.volume = prevVolume; }).catch(()=>{ el.volume = prevVolume; });
+    }
+  }
+
+  function playCrazyWhistle(){
+    const el = ensureCrazyWhistleAudio();
+    if(!el){ whistle('serveClock'); return; }
+    try{
+      el.currentTime = 0;
+      const p = el.play();
+      if(p && p.catch) p.catch(()=> whistle('serveClock'));
+    }catch(e){ whistle('serveClock'); }
+  }
+
+  // ---------- Modo Fiesta ----------
+  function triggerConfetti(){
+    const colors = ['#ff6b4a', '#0e6e83', '#ffe37a', '#ffffff', '#0a4f60'];
+    const count = 36;
+    for(let i = 0; i < count; i++){
+      const piece = document.createElement('div');
+      piece.className = 'confetti-piece';
+      piece.style.left = Math.random() * 100 + 'vw';
+      piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+      piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+      const duration = 1.4 + Math.random() * 1.2;
+      const delay = Math.random() * 0.3;
+      piece.style.animationDuration = duration + 's';
+      piece.style.animationDelay = delay + 's';
+      document.body.appendChild(piece);
+      setTimeout(()=> piece.remove(), (duration + delay) * 1000 + 200);
+    }
+  }
+
+  function playCelebrationSound(){
     try{
       if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       if(audioCtx.state === 'suspended') audioCtx.resume();
       const now = audioCtx.currentTime;
-
-      if(kind === 'serveClock'){
-        // silbato deportivo real: tono sostenido con vibrato rápido (efecto "bolita"
-        // de los silbatos de árbitro), más largo y bastante más alto que los demás
+      // arpegio ascendente de celebración, distinto al silbato
+      const notes = [523.25, 659.25, 783.99, 1046.5]; // Do-Mi-Sol-Do agudo
+      notes.forEach((freq, i)=>{
+        const t = now + i * 0.09;
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
-        const lfo = audioCtx.createOscillator();
-        const lfoGain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, t);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        gain.gain.setValueAtTime(0.0001, t);
+        gain.gain.exponentialRampToValueAtTime(0.3, t + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+        osc.start(t);
+        osc.stop(t + 0.36);
+      });
+    }catch(e){ /* silencioso */ }
+  }
 
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(2900, now);
+  // ---------- Modo Speaker de Torneo ----------
+  // frases más exageradas, repitiendo el nombre del equipo, tipo presentador
+  function speakerify(text, name){
+    return '¡' + text.replace(/^¡|!$/g, '') + '! ¡' + name + '! ¡' + name + '!';
+  }
 
-        lfo.frequency.setValueAtTime(24, now); // trino ~24 Hz
-        lfoGain.gain.setValueAtTime(140, now); // profundidad del vibrato en Hz
-        lfo.connect(lfoGain);
-        lfoGain.connect(osc.frequency);
+  function whistle(kind){
+    try{
+      if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
+      const playNow = ()=>{
+        const now = audioCtx.currentTime;
+
+        if(kind === 'serveClock'){
+          // silbato deportivo real: tono sostenido con vibrato rápido (efecto "bolita"
+          // de los silbatos de árbitro), más largo y bastante más alto que los demás
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          const lfo = audioCtx.createOscillator();
+          const lfoGain = audioCtx.createGain();
+
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(2900, now);
+
+          lfo.frequency.setValueAtTime(24, now); // trino ~24 Hz
+          lfoGain.gain.setValueAtTime(140, now); // profundidad del vibrato en Hz
+          lfo.connect(lfoGain);
+          lfoGain.connect(osc.frequency);
+
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+
+          gain.gain.setValueAtTime(0.0001, now);
+          gain.gain.exponentialRampToValueAtTime(0.45, now + 0.03);
+          gain.gain.setValueAtTime(0.45, now + 0.45);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+          lfo.start(now);
+          osc.start(now);
+          lfo.stop(now + 0.6);
+          osc.stop(now + 0.6);
+          return;
+        }
+
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'square';
         osc.connect(gain);
         gain.connect(audioCtx.destination);
 
-        gain.gain.setValueAtTime(0.0001, now);
-        gain.gain.exponentialRampToValueAtTime(0.45, now + 0.03);
-        gain.gain.setValueAtTime(0.45, now + 0.45);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+        if(kind === 'timeout'){
+          // dos toques cortos y graves-agudos, tipo silbato de árbitro parando el juego
+          osc.frequency.setValueAtTime(2200, now);
+          osc.frequency.setValueAtTime(1800, now + 0.12);
+          gain.gain.setValueAtTime(0.25, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+          osc.start(now);
+          osc.stop(now + 0.3);
+        } else if(kind === 'serve'){
+          // toque corto y ascendente, distinto al de cambio de campo, para marcar el saque
+          osc.frequency.setValueAtTime(1400, now);
+          osc.frequency.exponentialRampToValueAtTime(2000, now + 0.1);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+          osc.start(now);
+          osc.stop(now + 0.15);
+        } else {
+          // toque único, agudo y breve, para cambio de campo
+          osc.frequency.setValueAtTime(2400, now);
+          gain.gain.setValueAtTime(0.22, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+          osc.start(now);
+          osc.stop(now + 0.2);
+        }
+      };
 
-        lfo.start(now);
-        osc.start(now);
-        lfo.stop(now + 0.6);
-        osc.stop(now + 0.6);
-        return;
-      }
-
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = 'square';
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-
-      if(kind === 'timeout'){
-        // dos toques cortos y graves-agudos, tipo silbato de árbitro parando el juego
-        osc.frequency.setValueAtTime(2200, now);
-        osc.frequency.setValueAtTime(1800, now + 0.12);
-        gain.gain.setValueAtTime(0.25, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
-        osc.start(now);
-        osc.stop(now + 0.3);
-      } else if(kind === 'serve'){
-        // toque corto y ascendente, distinto al de cambio de campo, para marcar el saque
-        osc.frequency.setValueAtTime(1400, now);
-        osc.frequency.exponentialRampToValueAtTime(2000, now + 0.1);
-        gain.gain.setValueAtTime(0.2, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
-        osc.start(now);
-        osc.stop(now + 0.15);
+      // si el contexto se ha suspendido (típico en iOS tras varios segundos sin
+      // sonar nada, como durante la cuenta atrás), esperamos a que se reanude
+      // de verdad antes de programar el sonido; si no, el silbato se pierde en silencio
+      if(audioCtx.state === 'suspended'){
+        audioCtx.resume().then(playNow).catch(()=>{});
       } else {
-        // toque único, agudo y breve, para cambio de campo
-        osc.frequency.setValueAtTime(2400, now);
-        gain.gain.setValueAtTime(0.22, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
-        osc.start(now);
-        osc.stop(now + 0.2);
+        playNow();
       }
     }catch(e){ /* silencioso: si el navegador bloquea audio sin interacción, no pasa nada */ }
   }
 
   // Tiempo técnico automático: 30s cuando el equipo que va por delante
-  // llega a 21 puntos, solo en sets jugados a 21 (no en el decisivo a 15).
+  // llega a 21 puntos. Solo aplica al vóley playa (en pista no hay tiempo
+  // técnico automático, los entrenadores piden los suyos aparte).
   function maybeStartTechnicalTimeout(a, b, setEnds){
+    if(matchFormat !== 'playa') return false;
     if(setEnds || state.timeoutGiven) return false;
-    if(currentSetTarget() !== SET_POINTS) return false;
+    if(currentSetTarget() !== 21) return false;
     if(a === 21 || b === 21){
       state.timeoutGiven = true;
       startTimeout();
@@ -1070,18 +1323,28 @@
   }
 
   function startServeCountdown(){
-    if(!crazyModeOn) return;
+    if(serveCountdownMode === 'off') return;
     clearServeCountdown();
-    let secondsLeft = 8;
+    const isTraining = serveCountdownMode === 'entreno';
+    let secondsLeft = isTraining ? 15 : 8;
     say(String(secondsLeft));
     serveCountdownInterval = setInterval(()=>{
+      // evita que el AudioContext se suspenda solo a mitad de la cuenta
+      // (típico en iOS si pasan varios segundos sin sonar nada)
+      if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(()=>{});
       secondsLeft--;
       if(secondsLeft > 0){
         say(String(secondsLeft));
       } else {
         clearServeCountdown();
-        whistle('serveClock');
-        buzz([200,100,200,100,300]);
+        if(isTraining){
+          // aviso suave, sin silbato agresivo: solo un pitido corto y vibración ligera
+          whistle('serve');
+          buzz(100);
+        } else {
+          playCrazyWhistle();
+          buzz([200,100,200,100,300]);
+        }
       }
     }, 1000);
   }
@@ -1104,8 +1367,8 @@
 
     // sets pills
     els.setsRow.innerHTML = '';
-    const totalSets = Math.max(3, state.setHistory.length + 1);
-    for(let i=0;i<3;i++){
+    const maxPossibleSets = getDecidingSetIndex() + 1; // 3 en playa/pista3, 5 en pista5
+    for(let i=0;i<maxPossibleSets;i++){
       const pill = document.createElement('div');
       pill.className = 'set-pill';
       if(state.setHistory[i]){
@@ -1137,7 +1400,8 @@
       score: state.score, serve: state.serve, setsWon: state.setsWon,
       setHistory: state.setHistory, matchOver: state.matchOver,
       timeoutGiven: state.timeoutGiven, courtSwap: state.courtSwap,
-      pointsLog: state.pointsLog, currentStreak: state.currentStreak
+      pointsLog: state.pointsLog, currentStreak: state.currentStreak,
+      midSetChangeGiven: state.midSetChangeGiven
     })));
     if(state.history.length > 200) state.history.shift();
   }
@@ -1156,21 +1420,39 @@
         teamName(leader) + ' se lleva el set ' + finishedSetNum + ', ' + a + ' a ' + b,
         '¡Y el set es para ' + teamName(leader) + '! ' + a + ' a ' + b
       ];
-      announce([{text: pick(setTemplates), pitch: 0.88, rate: 0.92}]);
+      let setText = pick(setTemplates);
+      if(speakerModeOn) setText = speakerify(setText, teamName(leader));
+      announce([{text: setText, pitch: 0.88, rate: 0.92}]);
       flashBanner('SET para ' + teamName(leader));
       buzz([120,80,120,80,250]);
       state.score = {A:0, B:0};
       state.timeoutGiven = false;
+      state.midSetChangeGiven = false;
       state.currentStreak = {team: null, count: 0};
+      document.body.classList.remove('sudden-death');
 
-      if(state.setsWon[leader] >= SETS_TO_WIN){
+      if(partyModeOn){
+        triggerConfetti();
+        playCelebrationSound();
+      }
+
+      if(state.setsWon[leader] >= getSetsToWin()){
         state.matchOver = true;
         const matchTemplates = [
           '¡' + teamName(leader) + ' gana el partido!',
           '¡Y el partido es para ' + teamName(leader) + '!',
           teamName(leader) + ' se lleva el partido'
         ];
-        setTimeout(()=> announce([{text: pick(matchTemplates), pitch: 0.82, rate: 0.88}]), 1600);
+        let matchText = pick(matchTemplates);
+        if(speakerModeOn) matchText = speakerify(matchText, teamName(leader));
+        setTimeout(()=>{
+          announce([{text: matchText, pitch: 0.82, rate: 0.88}]);
+          if(partyModeOn){
+            triggerConfetti();
+            setTimeout(()=> triggerConfetti(), 400);
+            playCelebrationSound();
+          }
+        }, 1600);
       } else {
         // el que recibía saca el próximo set (regla simple: alterna)
         state.serve = state.serve === 'A' ? 'B' : 'A';
@@ -1201,14 +1483,26 @@
       state.currentStreak = {team, count: 1};
     }
 
-    // anuncio de tanto: solo si el modo de voz es "Todo", con frase variada y entonación
+    const inCrazyMode = serveCountdownMode === 'locura';
+    const diff = Math.abs(a - b);
     const messages = [];
-    if(voiceMode === 'all'){
-      messages.push(pointPhrase(team, a, b));
+
+    if(inCrazyMode){
+      // Modo Locura: nada de frases ni comentario, solo el marcador en plano
+      messages.push({text: teamName('A') + ' ' + a + ', ' + teamName('B') + ' ' + b});
+    } else if(voiceMode === 'all'){
+      // narración normal, pero no en cada punto: solo cada 3 puntos, con
+      // diferencias grandes (4+) o cuando hay una racha en marcha, para no ser pesado
+      const shouldNarrate = (total % 3 === 0) || diff >= 4 || state.currentStreak.count >= 3;
+      if(shouldNarrate){
+        const pointMsg = pointPhrase(team, a, b);
+        if(speakerModeOn) pointMsg.text = speakerify(pointMsg.text, teamName(team));
+        messages.push(pointMsg);
+      }
     }
 
-    // racha de 3 o más puntos seguidos: aviso táctico, independiente del modo de voz
-    if(!setEnds && state.currentStreak.count >= 3){
+    // racha de 3 o más puntos seguidos: aviso táctico (no en Modo Locura)
+    if(!inCrazyMode && !setEnds && state.currentStreak.count >= 3){
       const streakTemplates = [
         'Racha de ' + state.currentStreak.count + ' para ' + teamName(team),
         teamName(team) + ' encadena ' + state.currentStreak.count + ' seguidos',
@@ -1219,23 +1513,59 @@
 
     // avisos de cambio de campo (solo si este punto no cierra ya el set)
     let sideChanged = false;
-    if(!setEnds && total > 0){
+    if(!setEnds && matchFormat === 'playa' && total > 0){
       if(total % interval === 0){
         whistle('change');
-        const changeTemplates = ['Cambio de campo', 'Se cambia de lado', 'Cambio de lado ya', 'Tocan cambiar de campo'];
-        messages.push({text: pick(changeTemplates), pitch:0.95, rate:0.95});
+        if(!inCrazyMode){
+          const changeTemplates = ['Cambio de campo', 'Se cambia de lado', 'Cambio de lado ya', 'Tocan cambiar de campo'];
+          messages.push({text: pick(changeTemplates), pitch:0.95, rate:0.95});
+        }
         flashBanner('🔄 CAMBIO DE CAMPO');
         buzz([100,60,100]);
         sideChanged = true;
-      } else if(total % interval === interval - 1){
+
+        if(!inCrazyMode && heatModeOn){
+          const now = Date.now();
+          if(lastCourtChangeTime && (now - lastCourtChangeTime) > 6 * 60 * 1000){
+            const heatTemplates = [
+              'Menudo calor, aprovechad para beber agua',
+              'Esto va para largo, hidrataos un poco',
+              'Pausa mental: bebed agua, que hace calor'
+            ];
+            messages.push({text: pick(heatTemplates), pitch: 1.0, rate: 0.95});
+          }
+          lastCourtChangeTime = now;
+        }
+      } else if(total % interval === interval - 1 && !inCrazyMode){
         const warnTemplates = ['Uno para cambio', 'Un punto más y cambio', 'Último antes del cambio de campo'];
         messages.push({text: pick(warnTemplates), pitch:0.95, rate:0.95});
         flashBanner('Uno para cambio');
       }
+    } else if(!setEnds && matchFormat !== 'playa'){
+      // vóley pista: sin cambios repetidos durante el set; solo un cambio
+      // único en el set decisivo, cuando el primer equipo llega a 8 puntos
+      const inDecidingSet = state.setHistory.length === getDecidingSetIndex();
+      if(inDecidingSet && !state.midSetChangeGiven && (a === 8 || b === 8)){
+        state.midSetChangeGiven = true;
+        whistle('change');
+        if(!inCrazyMode){
+          const changeTemplates = ['Cambio de campo', 'Se cambia de lado', 'Cambio de lado ya'];
+          messages.push({text: pick(changeTemplates), pitch:0.95, rate:0.95});
+        }
+        flashBanner('🔄 CAMBIO DE CAMPO (set decisivo, 8 puntos)');
+        buzz([100,60,100]);
+        sideChanged = true;
+      }
     }
 
-    // punto de set / punto de partido: tono más grave y pausado, con gancho
-    messages.push(...pointStakes(a, b, setEnds));
+    // punto de set / punto de partido: tono más grave y pausado, con gancho (no en Modo Locura)
+    const stakes = inCrazyMode ? [] : pointStakes(a, b, setEnds);
+    messages.push(...stakes);
+
+    // Modo Muerte Súbita: pulso visual rojo cuando el set está a un punto de cerrarse
+    if(suddenDeathModeOn){
+      document.body.classList.toggle('sudden-death', !setEnds && stakes.length > 0);
+    }
 
     const spoken = announce(messages);
     if(sideChanged) state.courtSwap = !state.courtSwap;
@@ -1244,12 +1574,12 @@
     checkSetEnd();
 
     clearServeCountdown();
-    if(!timeoutStarted && !state.matchOver && crazyModeOn){
+    if(!timeoutStarted && !state.matchOver && serveCountdownMode !== 'off'){
       // espera a que termine de hablar el marcador (frase, cambio de campo, etc.)
       // antes de arrancar la cuenta atrás, para no cortarla a mitad
       Promise.resolve(spoken).then(()=>{
         // por si en el tiempo que tardó en hablar ya se dio otro punto o cambió el estado
-        if(crazyModeOn && !state.matchOver) startServeCountdown();
+        if(serveCountdownMode !== 'off' && !state.matchOver) startServeCountdown();
       });
     }
 
@@ -1286,6 +1616,7 @@
     state.setHistory = prev.setHistory;
     state.matchOver = prev.matchOver;
     state.timeoutGiven = prev.timeoutGiven;
+    state.midSetChangeGiven = prev.midSetChangeGiven;
     state.courtSwap = prev.courtSwap;
     state.pointsLog = prev.pointsLog;
     state.currentStreak = prev.currentStreak;
@@ -1303,9 +1634,11 @@
     if(leader) state.setsWon[leader]++;
     state.score = {A:0, B:0};
     state.timeoutGiven = false;
+    state.midSetChangeGiven = false;
     state.currentStreak = {team: null, count: 0};
+    document.body.classList.remove('sudden-death');
     clearServeCountdown();
-    if(leader && state.setsWon[leader] >= SETS_TO_WIN){
+    if(leader && state.setsWon[leader] >= getSetsToWin()){
       state.matchOver = true;
     } else {
       state.serve = state.serve === 'A' ? 'B' : 'A';
@@ -1316,11 +1649,17 @@
 
   function resetMatch(){
     if(!confirm('¿Reiniciar todo el partido?')) return;
+    resetMatchSilent();
+  }
+
+  function resetMatchSilent(){
     clearServeCountdown();
+    document.body.classList.remove('sudden-death');
+    lastCourtChangeTime = null;
     state = {
       score:{A:0,B:0}, setsWon:{A:0,B:0}, setHistory:[],
       serve:'A', matchOver:false, history:[],
-      timeoutGiven:false, courtSwap:false, pointsLog:[],
+      timeoutGiven:false, midSetChangeGiven:false, courtSwap:false, pointsLog:[],
       currentStreak:{team:null, count:0}
     };
     render();
@@ -1442,16 +1781,76 @@
     els.contrastToggle.classList.toggle('active', highContrastOn);
   });
 
-  els.crazyModeToggle.addEventListener('click', ()=>{
-    crazyModeOn = !crazyModeOn;
-    els.crazyModeToggle.classList.toggle('active', crazyModeOn);
-    if(crazyModeOn){
-      flashBanner('🔥 Modo Locura activado: 8s de cuenta atrás tras cada punto');
+  const serveCountdownLabels = {
+    off: '⏱️ Cuenta saque: Off',
+    locura: '🔥 Modo Locura',
+    entreno: '🐌 Entrenamiento'
+  };
+  const serveCountdownCycle = ['off', 'locura', 'entreno'];
+  els.serveCountdownToggle.addEventListener('click', ()=>{
+    const idx = serveCountdownCycle.indexOf(serveCountdownMode);
+    serveCountdownMode = serveCountdownCycle[(idx + 1) % serveCountdownCycle.length];
+    els.serveCountdownToggle.textContent = serveCountdownLabels[serveCountdownMode];
+    els.serveCountdownToggle.classList.toggle('active', serveCountdownMode !== 'off');
+    clearServeCountdown();
+    if(serveCountdownMode === 'locura'){
+      unlockCrazyWhistleAudio();
+      flashBanner('🔥 Modo Locura: 8s de cuenta atrás tras cada punto, con silbato');
       say('Modo Locura activado');
+    } else if(serveCountdownMode === 'entreno'){
+      flashBanner('🐌 Modo Entrenamiento: 15s de cuenta atrás, aviso suave');
+      say('Modo Entrenamiento activado');
     } else {
-      clearServeCountdown();
-      say('Modo Locura desactivado');
+      say('Cuenta atrás de saque desactivada');
     }
+  });
+
+  els.partyModeToggle.addEventListener('click', ()=>{
+    partyModeOn = !partyModeOn;
+    els.partyModeToggle.classList.toggle('active', partyModeOn);
+    if(partyModeOn){
+      flashBanner('🎉 Modo Fiesta activado: confeti y sonido al ganar set');
+      triggerConfetti();
+    }
+  });
+
+  els.suddenDeathToggle.addEventListener('click', ()=>{
+    suddenDeathModeOn = !suddenDeathModeOn;
+    els.suddenDeathToggle.classList.toggle('active', suddenDeathModeOn);
+    if(!suddenDeathModeOn) document.body.classList.remove('sudden-death');
+    flashBanner(suddenDeathModeOn ? '⏱️ Modo Muerte Súbita activado' : 'Modo Muerte Súbita desactivado');
+  });
+
+  els.heatModeToggle.addEventListener('click', ()=>{
+    heatModeOn = !heatModeOn;
+    els.heatModeToggle.classList.toggle('active', heatModeOn);
+    lastCourtChangeTime = heatModeOn ? Date.now() : null;
+    flashBanner(heatModeOn ? '🌡️ Modo Calor Extremo activado' : 'Modo Calor Extremo desactivado');
+  });
+
+  els.silentPhysicalToggle.addEventListener('click', ()=>{
+    silentPhysicalModeOn = !silentPhysicalModeOn;
+    els.silentPhysicalToggle.classList.toggle('active', silentPhysicalModeOn);
+    if(silentPhysicalModeOn){
+      voiceModeBeforeSilent = voiceMode;
+      voiceMode = 'off';
+      vibrateOn = true;
+      els.vibrateToggle.classList.add('active');
+      els.voiceModeToggle.textContent = voiceModeLabels.off;
+      els.voiceModeToggle.classList.remove('active');
+      flashBanner('🤫 Silencioso+: sin voz, con silbatos y vibración');
+    } else {
+      voiceMode = voiceModeBeforeSilent;
+      els.voiceModeToggle.textContent = voiceModeLabels[voiceMode];
+      els.voiceModeToggle.classList.toggle('active', voiceMode !== 'off');
+      flashBanner('Voz restaurada');
+    }
+  });
+
+  els.speakerModeToggle.addEventListener('click', ()=>{
+    speakerModeOn = !speakerModeOn;
+    els.speakerModeToggle.classList.toggle('active', speakerModeOn);
+    flashBanner(speakerModeOn ? '📢 Modo Speaker de Torneo activado' : 'Modo Speaker desactivado');
   });
 
   els.fullscreenToggle.addEventListener('click', async ()=>{
@@ -1538,48 +1937,55 @@
     }
   });
 
-  // ---------- Voz Pro: panel de ajustes ----------
+  // ---------- Panel de ajustes ----------
+  const formatLabels = {
+    playa: 'Vóley Playa · Set a 21 · diferencia de 2',
+    pista3: 'Vóley Pista · Mejor de 3 · sets a 25',
+    pista5: 'Vóley Pista · Mejor de 5 · sets a 25'
+  };
+  function updateRulesEyebrow(){
+    els.rulesEyebrow.textContent = formatLabels[matchFormat];
+  }
+  updateRulesEyebrow();
+
+  els.matchFormatSelect.addEventListener('change', ()=>{
+    const newFormat = els.matchFormatSelect.value;
+    const hasContent = state.setHistory.length > 0 || state.score.A > 0 || state.score.B > 0;
+    if(hasContent && !confirm('Cambiar de modalidad reinicia el partido actual. ¿Continuar?')){
+      els.matchFormatSelect.value = matchFormat; // revertir selección
+      return;
+    }
+    matchFormat = newFormat;
+    updateRulesEyebrow();
+    resetMatchSilent();
+    flashBanner('Modalidad: ' + formatLabels[matchFormat]);
+  });
+
   els.settingsToggle.addEventListener('click', ()=>{
     els.settingsPanel.classList.toggle('show');
   });
   els.settingsClose.addEventListener('click', ()=>{
     els.settingsPanel.classList.remove('show');
   });
-  els.workerUrlInput.addEventListener('change', ()=>{
-    workerUrl = els.workerUrlInput.value.trim();
-    proVoiceFailedOnce = false;
-    updateProVoiceStatus();
-  });
-  els.azureVoiceSelect.addEventListener('change', ()=>{
-    azureVoice = els.azureVoiceSelect.value;
-  });
 
-  function updateProVoiceStatus(){
-    if(!proVoiceOn){
-      els.proVoiceStatus.textContent = 'Voz Pro desactivada — usando la voz del navegador.';
-    } else if(!workerUrl){
-      els.proVoiceStatus.textContent = '⚠️ Falta la URL del Worker. Pégala arriba para activar Voz Pro.';
-    } else {
-      els.proVoiceStatus.textContent = '✅ Voz Pro activa, hablando con ' + azureVoice + '.';
+  // Pantalla de bienvenida: se cierra al tocar el botón, y aprovechamos
+  // ese toque real del usuario para desbloquear voz/audio de una vez
+  function dismissSplash(){
+    els.splashScreen.classList.add('hide');
+    if('speechSynthesis' in window){
+      const u = new SpeechSynthesisUtterance(' ');
+      u.volume = 0;
+      window.speechSynthesis.speak(u);
     }
+    if(!audioCtx){
+      try{ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){}
+    }
+    if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    unlockCrazyWhistleAudio();
   }
+  els.splashStart.addEventListener('click', dismissSplash);
 
-  els.proVoiceToggle.addEventListener('click', ()=>{
-    proVoiceOn = !proVoiceOn;
-    proVoiceFailedOnce = false;
-    els.proVoiceToggle.classList.toggle('active', proVoiceOn);
-    updateProVoiceStatus();
-    if(proVoiceOn && !workerUrl){
-      els.settingsPanel.classList.add('show');
-      flashBanner('Configura la URL del Worker para usar Voz Pro');
-    } else if(proVoiceOn){
-      announce([{text:'Voz Pro activada'}]);
-    } else {
-      say('Voz Pro desactivada');
-    }
-  });
-
-  // Desbloqueo de audio en iOS: primera interacción táctil
+  // Desbloqueo de audio en iOS: primera interacción táctil en cualquier parte
   document.body.addEventListener('touchstart', function unlock(){
     if('speechSynthesis' in window){
       const u = new SpeechSynthesisUtterance(' ');
@@ -1590,6 +1996,7 @@
       try{ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){}
     }
     if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    unlockCrazyWhistleAudio();
     document.body.removeEventListener('touchstart', unlock);
   }, {once:true});
 
